@@ -1,0 +1,197 @@
+(@define NODE_ROOT 0)
+(@define NODE_EXPR 1)
+(@define NODE_INT 2)
+(@define NODE_STR 3)
+(@define NODE_STR_QUOTE 4)
+
+(struct node
+	(let type int)
+	(let val_str str)
+	(let val_child (arr (struct node)))
+)
+
+(func node_new (param type int) (param val_str str) (result (struct node))
+	(let node_new (struct node) (alloc (struct node)))
+	(set node_new type type)
+	(set node_new val_str val_str)
+	(set node_new val_child (alloc (arr (struct node))))
+	
+	(return node_new)
+)
+
+(func node_to_wax (param depth int) (param node (struct node)) (result str)
+	(let indent str (alloc str ""))
+	(for i 0 (< i depth) 1 (do
+		(<< indent " ")
+	))
+
+	(let s str (alloc str ""))
+	
+	(if (= (get node type) @NODE_ROOT) (then
+		(for i 0 (< i (# (get node val_child))) 1 (do
+			(let child str (call node_to_wax 0 (get (get node val_child) i)))
+			(<< s child)
+		))
+	))
+
+	(if (= (get node type) @NODE_EXPR) (then
+		(<< s indent)
+		(<< s "(")
+		(<< s (get node val_str))
+		(<< s " ")
+		(for i 0 (< i (# (get node val_child))) 1 (do
+			(let child str (call node_to_wax (+ depth 1) (get (get node val_child) i)))
+			(<< s child)
+		))
+		(<< s ")")
+		(<< s "\n")
+	))
+
+	(if (= (get node type) @NODE_STR) (then
+		(<< s (get node val_str))
+	))
+
+	(if (= (get node type) @NODE_STR_QUOTE) (then
+		(<< s "\"")
+		(<< s (get node val_str))
+		(<< s "\"")
+	))
+
+	(return s)
+)
+
+(func node_to_js (param depth int) (param node (struct node)) (result str)
+	(let indent str (alloc str ""))
+	(for i 0 (< i depth) 1 (do
+		(<< indent " ")
+	))
+	
+	(let s str (alloc str ""))
+	
+	(if (= (get node type) @NODE_ROOT) (then
+		(for i 0 (< i (# (get node val_child))) 1 (do
+			(let child str (call node_to_js 0 (get (get node val_child) i)))
+			(<< s child)
+		))
+		
+		(<< s "\n\n")
+		(<< s "main()\n")
+	))
+	
+	(if (= (get node type) @NODE_EXPR) (then
+		(if (= (get node val_str) "func") (then
+			(<< s indent)
+			(<< s "function ")
+			(let node_func_name (struct node) (get (get node val_child) 0))
+ 			(<< s (get node_func_name val_str))
+			(<< s "() {\n")	; todo - params 
+			
+			(for i 0 (< i (# (get node val_child))) 1 (do
+				(let child str (call node_to_js (+ depth 1) (get (get node val_child) i)))
+				(<< s child)
+			))
+			
+ 			(<< s "}\n")
+		))
+		(if (= (get node val_str) "print") (then
+			(<< s indent)
+ 			(<< s "console.log(\"")
+			(let node_print_val (struct node) (get (get node val_child) 0))
+ 			(<< s (get node_print_val val_str))
+			(<< s "\")")
+ 			(<< s "\n")
+		))
+		(if (= (get node val_str) "return") (then
+			(<< s indent)
+ 			(<< s "return ")
+			(let node_return_val (struct node) (get (get node val_child) 0))
+ 			(<< s (get node_return_val val_str))
+ 			(<< s "\n")
+		))
+	))
+	
+	(return s)
+)
+
+(func node_to_c (param depth int) (param node (struct node)) (result str)
+	(return "node_to_c not implemented")
+)
+
+(func prog_helloworld (result (struct node))
+ 	(let root (struct node) (call node_new @NODE_ROOT ""))
+	
+	(let hello_func (struct node) (call node_new @NODE_EXPR "func"))
+ 	(insert (get root val_child) (# (get root val_child)) hello_func)
+	
+	(let func_main (struct node) (call node_new @NODE_STR "main"))
+ 	(insert (get hello_func val_child) (# (get hello_func val_child)) func_main)
+	
+	(let func_result (struct node) (call node_new @NODE_EXPR "result"))
+ 	(insert (get hello_func val_child) (# (get hello_func val_child)) func_result)
+
+	(let result_int (struct node) (call node_new @NODE_STR "int"))
+ 	(insert (get func_result val_child) (# (get func_result val_child)) result_int)
+	
+	(let func_print (struct node) (call node_new @NODE_EXPR "print"))
+	(insert (get hello_func val_child) (# (get hello_func val_child)) func_print)
+	
+	(let print_hello (struct node) (call node_new @NODE_STR_QUOTE "Hello World!"))
+ 	(insert (get func_print val_child) (# (get func_print val_child)) print_hello)
+	
+	(let func_return (struct node) (call node_new @NODE_EXPR "return"))
+	(insert (get hello_func val_child) (# (get hello_func val_child)) func_return)
+	
+	(let return_0 (struct node) (call node_new @NODE_STR "0"))
+ 	(insert (get func_return val_child) (# (get func_return val_child)) return_0)
+
+	(return root)
+)
+
+(func prog_fib (result (struct node))
+ 	(let root (struct node) (call node_new @NODE_ROOT ""))
+	
+	; fib func
+	(let fib_func (struct node) (call node_new @NODE_EXPR "func"))
+ 	(insert (get root val_child) (# (get root val_child)) fib_func)
+	
+	(let func_fib (struct node) (call node_new @NODE_STR "fib"))
+ 	(insert (get fib_func val_child) (# (get fib_func val_child)) func_fib)
+	
+	(let func_param (struct node) (call node_new @NODE_EXPR "param"))
+ 	(insert (get fib_func val_child) (# (get fib_func val_child)) func_param)
+
+	(let param_int (struct node) (call node_new @NODE_STR "int"))
+ 	(insert (get func_param val_child) (# (get func_param val_child)) param_int)
+	
+	(let func_result (struct node) (call node_new @NODE_EXPR "result"))
+ 	(insert (get fib_func val_child) (# (get fib_func val_child)) func_result)
+
+	(let result_int (struct node) (call node_new @NODE_STR "int"))
+ 	(insert (get func_result val_child) (# (get func_result val_child)) result_int)
+	
+	; main func
+	(let main_func (struct node) (call node_new @NODE_EXPR "func"))
+ 	(insert (get root val_child) (# (get root val_child)) main_func)
+	
+	(let func_main (struct node) (call node_new @NODE_STR "main"))
+ 	(insert (get main_func val_child) (# (get main_func val_child)) func_main)
+	
+	(let func_result_m (struct node) (call node_new @NODE_EXPR "result"))
+	(insert (get main_func val_child) (# (get main_func val_child)) func_result_m)
+	
+	(let result_int_m (struct node) (call node_new @NODE_STR "int"))
+ 	(insert (get func_result_m val_child) (# (get func_result_m val_child)) result_int_m)
+
+
+	(return root)
+)
+
+(func main (result int)
+;  	(let root (struct node) (call prog_helloworld))
+   	(let root (struct node) (call prog_fib))
+   	(let out str (call node_to_wax 0 root))
+;    	(let out str (call node_to_js 0 root))
+	
+	(print out)
+	(return 0)
+)
