@@ -6,14 +6,14 @@
 
 (struct node
 	(let type int)
-	(let val_str str)
+	(let value str)
 	(let child (arr (struct node)))
 )
 
-(func node_new (param type int) (param val_str str) (result (struct node))
+(func node_new (param type int) (param value str) (result (struct node))
 	(let node_new (struct node) (alloc (struct node)))
 	(set node_new type type)
-	(set node_new val_str val_str)
+	(set node_new value value)
 	(set node_new child (alloc (arr (struct node))))
 	
 	(return node_new)
@@ -37,7 +37,7 @@
 	(if (= (get node type) @NODE_EXPR) (then
 		(<< s indent)
 		(<< s "(")
-		(<< s (get node val_str))
+		(<< s (get node value))
 		(<< s " ")
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let child str (call node_to_wax (+ depth 1) (get (get node child) i)))
@@ -48,12 +48,12 @@
 	))
 
 	(if (= (get node type) @NODE_STR) (then
-		(<< s (get node val_str))
+		(<< s (get node value))
 	))
 
 	(if (= (get node type) @NODE_STR_QUOTE) (then
 		(<< s "\"")
-		(<< s (get node val_str))
+		(<< s (get node value))
 		(<< s "\"")
 	))
 
@@ -79,11 +79,11 @@
 	))
 	
 	(if (= (get node type) @NODE_EXPR) (then
-		(if (= (get node val_str) "func") (then
+		(if (= (get node value) "func") (then
 			(<< s indent)
 			(<< s "function ")
 			(let node_func_name (struct node) (get (get node child) 0))
- 			(<< s (get node_func_name val_str))
+ 			(<< s (get node_func_name value))
 			(<< s "() {\n")	; todo - params 
 			
 			(for i 0 (< i (# (get node child))) 1 (do
@@ -93,19 +93,19 @@
 			
  			(<< s "}\n")
 		))
-		(if (= (get node val_str) "print") (then
+		(if (= (get node value) "print") (then
 			(<< s indent)
  			(<< s "console.log(\"")
 			(let node_print_val (struct node) (get (get node child) 0))
- 			(<< s (get node_print_val val_str))
+ 			(<< s (get node_print_val value))
 			(<< s "\")")
  			(<< s "\n")
 		))
-		(if (= (get node val_str) "return") (then
+		(if (= (get node value) "return") (then
 			(<< s indent)
  			(<< s "return ")
 			(let node_return_val (struct node) (get (get node child) 0))
- 			(<< s (get node_return_val val_str))
+ 			(<< s (get node_return_val value))
  			(<< s "\n")
 		))
 	))
@@ -187,8 +187,8 @@
 )
 
 (func main (result int)
-  	(let root (struct node) (call prog_helloworld))
-;   	(let root (struct node) (call prog_fib))
+;  	(let root (struct node) (call prog_helloworld))
+   	(let root (struct node) (call prog_fib))
    	(let out str (call node_to_wax 0 root))
 ;    	(let out str (call node_to_js 0 root))
 	

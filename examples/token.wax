@@ -1,0 +1,95 @@
+(@define CHAR_NL 10)
+(@define CHAR_SPACE 32)
+(@define CHAR_PAREN_OPEN 40)
+(@define CHAR_PAREN_CLOSE 41)
+
+(func prog_helloworld (result str)
+	(let lines (arr str) (alloc (arr str)
+		"\n"
+		"(func main (result int)\n"
+		"  (print \"HelloWorld!\")\n"
+		"  (return 0)\n"
+		")\n"
+	))
+
+	(let prog str (alloc str ""))
+	(for i 0 (< i (# lines)) 1 (do
+		(<< prog (get lines i))
+	))
+
+	(return prog)
+)
+
+(func prog_fib (result str)
+	(let lines (arr str) (alloc (arr str)
+		"(func fib (param i int) (result int)\n"
+		"	(if (<= i 1) (then\n"
+		"		(return i)\n"
+		"	))\n"
+		"	(return (+\n"
+		"		(call fib (- i 1))\n"
+		"		(call fib (- i 2))\n"
+		"	))\n"
+		")\n"
+		"\n"
+		"(func main (result int)\n"
+		"	(let x int (call fib 9))\n"
+		"	(print x)\n"
+		"	(return 0)\n"
+		")\n"
+	))
+
+	(let prog str (alloc str ""))
+	(for i 0 (< i (# lines)) 1 (do
+		(<< prog (get lines i))
+	))
+
+	(return prog)
+)
+
+(func node_token_parse (param input str) (result (arr str))
+	(let token str (alloc str))
+	(let tokens (arr str) (alloc (arr str)))
+
+	(let x int (|| (= 1 1) (= 2 2) (= 3 3)))
+
+	(for i 0 (< i (# input)) 1 (do
+		(let c int (get input i))
+
+		(let whitespace int (|| (= c @CHAR_SPACE) (= c @CHAR_NL)))
+		(let paren int (|| (= c @CHAR_PAREN_OPEN) (= c @CHAR_PAREN_CLOSE)))
+
+		(if (|| whitespace paren) (then
+			(if (<> 0 (# token)) (then
+				(insert tokens (# tokens) token)
+			))
+
+			(if paren (then
+				(set token "")
+				(<< token c)
+ 				(insert tokens (# tokens) token)
+			))
+
+			(set token "")
+			)
+			(else
+				(<< token c)
+			)
+		)
+	))
+
+	(return tokens)
+)
+
+(func main (result int)
+	(let prog str (call prog_helloworld))
+;  	(let prog str (call prog_fib))
+	
+	(let tokens (arr str) (call node_token_parse prog))
+
+	(for i 0 (< i (# tokens)) 1 (do
+		(print (get tokens i))
+	))
+
+	(return 0)
+)
