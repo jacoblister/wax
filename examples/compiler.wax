@@ -1,3 +1,40 @@
+(@define CHAR_NL 10)
+(@define CHAR_SPACE 32)
+(@define CHAR_PAREN_OPEN 40)
+(@define CHAR_PAREN_CLOSE 41)
+
+(func tokens_parse (param input str) (result (arr str))
+	(let token str (alloc str))
+	(let tokens (arr str) (alloc (arr str)))
+
+	(for i 0 (< i (# input)) 1 (do
+		(let c int (get input i))
+
+		(let whitespace int (|| (= c @CHAR_SPACE) (= c @CHAR_NL)))
+		(let paren int (|| (= c @CHAR_PAREN_OPEN) (= c @CHAR_PAREN_CLOSE)))
+
+		(if (|| whitespace paren) (then
+			(if (<> 0 (# token)) (then
+				(insert tokens (# tokens) token)
+			))
+
+			(if paren (then
+				(set token "")
+				(<< token c)
+ 				(insert tokens (# tokens) token)
+			))
+
+			(set token "")
+			)
+			(else
+				(<< token c)
+			)
+		)
+	))
+
+	(return tokens)
+)
+
 (@define NODE_ROOT 0)
 (@define NODE_EXPR 1)
 (@define NODE_INT 2)
@@ -10,6 +47,50 @@
 	(let child (arr (struct node)))
 )
 
+(func prog_helloworld (result str)
+	(let lines (arr str) (alloc (arr str)
+		"\n"
+		"(func main (result int)\n"
+		"  (print \"HelloWorld!\")\n"
+		"  (return 0)\n"
+		")\n"
+	))
+
+	(let prog str (alloc str ""))
+	(for i 0 (< i (# lines)) 1 (do
+		(<< prog (get lines i))
+	))
+
+	(return prog)
+)
+
+(func prog_fib (result str)
+	(let lines (arr str) (alloc (arr str)
+		"(func fib (param i int) (result int)\n"
+		"	(if (<= i 1) (then\n"
+		"		(return i)\n"
+		"	))\n"
+		"	(return (+\n"
+		"		(call fib (- i 1))\n"
+		"		(call fib (- i 2))\n"
+		"	))\n"
+		")\n"
+		"\n"
+		"(func main (result int)\n"
+		"	(let x int (call fib 9))\n"
+		"	(print x)\n"
+		"	(return 0)\n"
+		")\n"
+	))
+
+	(let prog str (alloc str ""))
+	(for i 0 (< i (# lines)) 1 (do
+		(<< prog (get lines i))
+	))
+
+	(return prog)
+)
+
 (func node_new (param type int) (param value str) (result (struct node))
 	(let node_new (struct node) (alloc (struct node)))
 	(set node_new type type)
@@ -17,6 +98,31 @@
 	(set node_new child (alloc (arr (struct node))))
 	
 	(return node_new)
+)
+
+(func node_from_tokens (param tokens (arr str)) (result (struct node))
+ 	(let root (struct node) (call node_new @NODE_ROOT ""))
+
+	(let i int 0)
+	
+	(while (< i (# tokens)) (do
+		(if (= (get tokens i) "(") (then
+			(let node (struct node) 
+				(call node_new @NODE_EXPR (get tokens (+ i 1)))
+			)
+			(insert (get root child) (# (get root child)) node)
+		
+			(let child (struct node) 
+				(call node_new @NODE_STR (get tokens (+ i 2)))
+			)
+		 	(insert (get node child) (# (get node child)) child)
+
+			(set i (+ i 2))			
+		))
+		(set i (+ i 1))
+	))
+
+	(return root)
 )
 
 (func node_to_wax (param depth int) (param node (struct node)) (result str)
@@ -117,7 +223,7 @@
 	(return "node_to_c not implemented")
 )
 
-(func prog_helloworld (result (struct node))
+(func prog_helloworld_raw (result (struct node))
  	(let root (struct node) (call node_new @NODE_ROOT ""))
 	
 	(let hello_func (struct node) (call node_new @NODE_EXPR "func"))
@@ -147,49 +253,16 @@
 	(return root)
 )
 
-(func prog_fib (result (struct node))
- 	(let root (struct node) (call node_new @NODE_ROOT ""))
-	
-	; fib func
-	(let fib_func (struct node) (call node_new @NODE_EXPR "func"))
- 	(insert (get root child) (# (get root child)) fib_func)
-	
-	(let func_fib (struct node) (call node_new @NODE_STR "fib"))
- 	(insert (get fib_func child) (# (get fib_func child)) func_fib)
-	
-	(let func_param (struct node) (call node_new @NODE_EXPR "param"))
- 	(insert (get fib_func child) (# (get fib_func child)) func_param)
-
-	(let param_int (struct node) (call node_new @NODE_STR "int"))
- 	(insert (get func_param child) (# (get func_param child)) param_int)
-	
-	(let func_result (struct node) (call node_new @NODE_EXPR "result"))
- 	(insert (get fib_func child) (# (get fib_func child)) func_result)
-
-	(let result_int (struct node) (call node_new @NODE_STR "int"))
- 	(insert (get func_result child) (# (get func_result child)) result_int)
-	
-	; main func
-	(let main_func (struct node) (call node_new @NODE_EXPR "func"))
- 	(insert (get root child) (# (get root child)) main_func)
-	
-	(let func_main (struct node) (call node_new @NODE_STR "main"))
- 	(insert (get main_func child) (# (get main_func child)) func_main)
-	
-	(let func_result_m (struct node) (call node_new @NODE_EXPR "result"))
-	(insert (get main_func child) (# (get main_func child)) func_result_m)
-	
-	(let result_int_m (struct node) (call node_new @NODE_STR "int"))
- 	(insert (get func_result_m child) (# (get func_result_m child)) result_int_m)
-
-
-	(return root)
-)
-
 (func main (result int)
-;  	(let root (struct node) (call prog_helloworld))
-   	(let root (struct node) (call prog_fib))
-   	(let out str (call node_to_wax 0 root))
+;  	(let root (struct node) (call prog_helloworld_raw))
+
+	(let prog str (call prog_helloworld))
+;	(let prog str (call prog_fib))
+	(let tokens (arr str) (call tokens_parse prog))
+
+	(let root (struct node) (call node_from_tokens tokens))
+   	
+	(let out str (call node_to_wax 0 root))
 ;    	(let out str (call node_to_js 0 root))
 	
 	(print out)
