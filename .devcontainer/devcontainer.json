@@ -1,0 +1,4 @@
+{
+    "build": { "dockerfile": "Dockerfile" },
+    "extensions": ["wax.wax4vscode"]
+}
