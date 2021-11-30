@@ -428,7 +428,7 @@
 				(set block_start "[]")
 			))
 			(if (= @NODE_STR (get (get (get node child) 0) type)) (then
-				(set block_start "\"\"")
+				(set block_start "")
 			))
 
 			(remove (get node child) 0 1)
