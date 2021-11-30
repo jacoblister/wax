@@ -189,6 +189,43 @@
 	(return prog)
 )
 
+(func prog_turing (result str)
+	(let lines (arr str) (alloc (arr str)
+		"(@define STAY  0) (@define LEFT  1) (@define RIGHT 2) (struct transition (let q_curr int) (let q_targ int) "
+		"(let sym_r  int) (let sym_w  int) (let shift  int) ) (struct machine (let state int) (let head  int) (let tape"
+		"(map int int))(let tmin  int)(let tmax  int)) (func step (param M (struct machine))	(param D (arr (struct "
+		"transition))) (let tape (map int int) (get M tape))	(for i 0 (< i (# D)) 1 (do (if (&& (= (get M state)"
+		"(get D i q_curr)) (= (get tape (get M head)) (get D i sym_r ))) (then (set tape  (get M head) (get D i sym_w ))"
+		"(set M state (get D i q_targ))(if (= (get D i shift) @LEFT) (then (set M head (- (get M head) 1)) )(else(if (= "
+		"(get D i shift) @RIGHT) (then (set M head (+ (get M head) 1)) )))) (break) )) )) (if (< (get M head) (get M tmin))"
+		"(then (set M tmin (get M head)) )) (if (> (get M head) (get M tmax)) (then (set M tmax (get M head)) )) )"
+		"(func draw (param M (struct machine)) (let s str (alloc str "")) (for i (get M tmin) (<= i (get M tmax)) 1 (do"
+		"(<< s (? (= i (get M head )) (get M state) ' ') ) (<< s (?      (get M tape i) '1'           '_') )	(<< s \"  \")"
+		")) (print s) ) (func turing (param D (arr (struct transition)))	(param q0 int)(param q1 int) (local M (struct "
+		"machine) (alloc (struct machine))) (local tape (map int int) (alloc (map int int))) (set M state q0) (set M tape "
+		"tape) (call draw M)	(while 1 (do (call step M D) (call draw M) (if (= (get M state) q1) (then (break) )))))"
+		"(func defn (param D (arr (struct transition))) (param q_curr int)  (param q_targ int) (param sym_r  int)  (param "
+		"sym_w  int)	(param shift  int)(let d (struct transition) (alloc (struct transition))) (set d q_curr q_curr)"
+		"(set d q_targ q_targ) (set d sym_r  sym_r )	(set d sym_w  sym_w ) (set d shift  shift )	(insert D (# D) d))"
+		"(func beaver3 (local D (arr (struct transition)) (alloc (arr (struct transition))))	(call defn D 'A' 'B' 0 1 @RIGHT)"
+		"(call defn D 'A' 'C' 1 1 @LEFT ) (call defn D 'B' 'A' 0 1 @LEFT ) (call defn D 'B' 'B' 1 1 @RIGHT) (call defn D 'C' 'B' 0 1 @LEFT )"
+		"(call defn D 'C' 'H' 1 1 @STAY ) (call turing D 'A' 'H') (for i 0 (< i (# D)) 1 (do (free (get D i)))))"
+		"(func beaver4 (local D (arr (struct transition)) (alloc (arr (struct transition))))	(call defn D 'A' 'B' 0 1 @RIGHT)"
+		"(call defn D 'A' 'B' 1 1 @LEFT ) (call defn D 'B' 'A' 0 1 @LEFT ) (call defn D 'B' 'C' 1 0 @LEFT ) (call defn D "
+		"'C' 'H' 0 1 @RIGHT) (call defn D 'C' 'D' 1 1 @LEFT ) (call defn D 'D' 'D' 0 1 @RIGHT) (call defn D 'D' 'A' 1 0 "
+		"@RIGHT)	(call turing D 'A' 'H')	(for i 0 (< i (# D)) 1 (do (free (get D i)) ))) (func main (result int)	(call "
+		"beaver4) (return 0)	)"
+	))
+
+	(let prog str (alloc str ""))
+	(for i 0 (< i (# lines)) 1 (do
+		(<< prog (get lines i))
+	))
+
+	(return prog)
+)
+
+
 (func node_new (param type int) (param value str) (result (struct node))
 	(let node_new (struct node) (alloc (struct node)))
 	(set node_new type type)
@@ -629,8 +666,9 @@
 	; (let prog str (call prog_helloworld))
 	; (let prog str (call prog_vecmap))
 	; (let prog str (call prog_fib))
-	; (let prog str (call prog_nqueens))
-	(let prog str (call prog_hilbert))
+	(let prog str (call prog_nqueens))
+	; (let prog str (call prog_hilbert))
+	; (let prog str (call prog_turing))
 	(let tokens (arr str) (call tokens_parse prog))
 
 	; (let s str (alloc str ""))
