@@ -894,9 +894,9 @@
 	; (let prog str (call prog_strings))
 	; (let prog str (call prog_arrvec))
 	; (let prog str (call prog_structmap))
-	; (let prog str (call prog_fib))
+	(let prog str (call prog_fib))
 	; (let prog str (call prog_nqueens))
-	(let prog str (call prog_hilbert))
+	; (let prog str (call prog_hilbert))
 	; (let prog str (call prog_turing))
     ; (let prog str (call prog_readfile "/workspaces/wax/examples/compiler.wax"))
 
