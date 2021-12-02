@@ -662,27 +662,10 @@
 
 (func prog_helloworld (result str)
 	(let lines (arr str) (alloc (arr str)
-		; "(func main (result int)"
-		; "  (print \"Hello World!\")"
-		; "  (return 0)"
-		; ")"
-"(\n"
-"func\n"
-"main\n"
-"(\n"
-"result\n"
-"int\n"
-")\n"
-"(\n"
-"print\n"
-"\"hello\\nworld!\"\n"
-")\n"
-"(\n"
-"return\n"
-"0\n"
-")\n"
-")\n"
-"\n"		
+		"(func main (result int)"
+		"  (print \"Hello World!\")"
+		"  (return 0)"
+		")"
 	))
 
 	(let prog str (alloc str ""))
@@ -915,7 +898,7 @@
 	; (let prog str (call prog_nqueens))
 	(let prog str (call prog_hilbert))
 	; (let prog str (call prog_turing))
-    ; (let prog str (call prog_readfile "/workspaces/wax/examples/hilbert.wax"))
+    ; (let prog str (call prog_readfile "/workspaces/wax/examples/compiler.wax"))
 
 	(let tokens (arr str) (call tokens_parse prog))
 	; (print (call tokens_to_string tokens 100))
