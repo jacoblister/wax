@@ -156,28 +156,6 @@
 	(return @NODE_STR)
 )
 
-; eg (+ a b c) -> (+ (+ a b) c) 
-(func node_expand (param node_org (struct node)) (result (struct node))
-	(if (< (# (get node_org child)) 2) (then
-		(return node_org)
-	))
-	
-	(let expanded (struct node) (call node_new @NODE_EXPR (get node_org value)))
-
-	(insert (get expanded child) (# (get expanded child)) (get (get node_org child) 0))
-	(if (= (# (get node_org child)) 2) (then
-		(insert (get expanded child) (# (get expanded child)) (get (get node_org child) 1))
-	) (else
-		(let expanded_child (struct node) (call node_new @NODE_EXPR (get node_org value)))
-		(for i 1 (< i (# (get node_org child))) 1 (do
-			(insert (get expanded_child child) (# (get expanded_child child)) (get (get node_org child) i))
-		))
-
-		(insert (get expanded child) (# (get expanded child)) expanded_child)
-	))
-	(return expanded)
-)
-
 (func node_from_tokens (param tokens (arr str)) (result (struct node))
 	(let stack (arr (struct node)) (alloc (arr (struct node))))
 	(insert stack (# stack) (call node_new @NODE_ROOT ""))
@@ -215,42 +193,99 @@
 	(return (get stack 0))
 )
 
+; eg (+ a b c) -> (+ (+ a b) c) 
+(func node_expand (param node_org (struct node)) (result (struct node))
+	(if (< (# (get node_org child)) 2) (then
+		(return node_org)
+	))
+	
+	(let expanded (struct node) (call node_new @NODE_EXPR (get node_org value)))
+
+	(insert (get expanded child) (# (get expanded child)) (get (get node_org child) 0))
+	(if (= (# (get node_org child)) 2) (then
+		(insert (get expanded child) (# (get expanded child)) (get (get node_org child) 1))
+	) (else
+		(let expanded_child (struct node) (call node_new @NODE_EXPR (get node_org value)))
+		(for i 1 (< i (# (get node_org child))) 1 (do
+			(insert (get expanded_child child) (# (get expanded_child child)) (get (get node_org child) i))
+		))
+
+		(insert (get expanded child) (# (get expanded child)) expanded_child)
+	))
+	(return expanded)
+)
+
+(func node_indent_needed (param node (struct node)) (param child (struct node)) (result int)
+	(if (<> (get child type) @NODE_EXPR) (then
+		(return 0)
+	))
+
+	(if (||
+		(= (get child value) "param") 
+		(= (get child value) "result")
+		) (then
+			(return 0)
+	))
+	(if (||
+		(= (get node value) "func")
+		(= (get node value) "do")
+		(= (get node value) "then")
+		(= (get node value) "else")
+		(= (get node value) "struct")
+		(= (get node value) "&&")
+		(= (get node value) "||")
+		) (then
+			(return 1)
+		)
+	)
+)
+
 ; ----------------------------------------------------------------------------
 ; - WAX language target -
 ; ----------------------------------------------------------------------------
 
 (func node_to_wax (param depth int) (param node (struct node)) (result str)
-	(let indent str (alloc str ""))
-	(for i 0 (< i depth) 1 (do
-		(<< indent "  ")
-	))
-
 	(let s str (alloc str ""))
+	(let indent str "  ")
 	
 	(if (= (get node type) @NODE_ROOT) (then
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let child str (call node_to_wax 0 (get (get node child) i)))
 			(<< s child)
+			(<< s "\n")
 		))
 	))
 
 	(if (= (get node type) @NODE_EXPR) (then
-		(let last_child_expr int 0)
-
-		(<< s "\n")
-		(<< s indent)
 		(<< s "(")
 		(<< s (get node value))
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let node_child (struct node) (get (get node child) i))
-			(set last_child_expr (= (get node_child type) @NODE_EXPR))
-			(let child str (call node_to_wax (+ depth 1) node_child))
-			(<< s " ")
+			(let indent_needed int (call node_indent_needed node node_child))
+			(let indent_depth int (? indent_needed depth (- depth 1)))
+		
+			(if indent_needed (then
+				(<< s "\n")
+				(for i 0 (<= i indent_depth) 1 (do
+					(<< s indent)
+				))
+			) (else 
+				(<< s " ")
+			))
+
+			(let child str (call node_to_wax (+ indent_depth 1) node_child))
 			(<< s child)
-		))
-		(if last_child_expr (then
-			(<< s "\n")
-			(<< s indent)
+
+			(if (&& 
+				indent_needed
+				(= i (- (# (get node child)) 1)) ; is last child
+				) (then
+				(<< s "\n")
+				(for i 0 (< i indent_depth) 1 (do
+					(<< s indent)
+				))
+			))
+
 		))
 		(<< s ")")
 	))
@@ -894,10 +929,10 @@
 	; (let prog str (call prog_strings))
 	; (let prog str (call prog_arrvec))
 	; (let prog str (call prog_structmap))
-	(let prog str (call prog_fib))
+	; (let prog str (call prog_fib))
 	; (let prog str (call prog_nqueens))
 	; (let prog str (call prog_hilbert))
-	; (let prog str (call prog_turing))
+	(let prog str (call prog_turing))
     ; (let prog str (call prog_readfile "/workspaces/wax/examples/compiler.wax"))
 
 	(let tokens (arr str) (call tokens_parse prog))
@@ -905,8 +940,8 @@
 
 	(let root (struct node) (call node_from_tokens tokens))
    	
-	; (let out str (call node_to_wax 0 root))
-   	(let out str (call node_to_js 0 root))
+	(let out str (call node_to_wax 0 root))
+   	; (let out str (call node_to_js 0 root))
 	(print out)
 
 	(return 0)
