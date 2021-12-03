@@ -70,7 +70,7 @@
 	(for i 0 (< i (# tokens)) 1 (do
 		(let token str "")
 		(for j 0 (< j (# (get tokens i))) 1 (do
-			(let c int (get (get tokens i) j))
+			(let c int (get tokens i j))
 			(let encoded str "")
 			(<< encoded c)
 			(if (= c '\"') (then
@@ -173,11 +173,9 @@
 			(insert stack (# stack) node)
 		
 			(set i (+ i 1))			
-			) 
-			(else (if (= token ")") (then
+			) (else (if (= token ")") (then
 				(remove stack (- (# stack) 1) 1)
-			) 
-				(else
+			) (else
 					(let child (struct node)
 						(call node_new (call node_type_from_token token) token)
 					)
@@ -201,13 +199,13 @@
 	
 	(let expanded (struct node) (call node_new @NODE_EXPR (get node_org value)))
 
-	(insert (get expanded child) (# (get expanded child)) (get (get node_org child) 0))
+	(insert (get expanded child) (# (get expanded child)) (get node_org child 0))
 	(if (= (# (get node_org child)) 2) (then
-		(insert (get expanded child) (# (get expanded child)) (get (get node_org child) 1))
+		(insert (get expanded child) (# (get expanded child)) (get node_org child 1))
 	) (else
 		(let expanded_child (struct node) (call node_new @NODE_EXPR (get node_org value)))
 		(for i 1 (< i (# (get node_org child))) 1 (do
-			(insert (get expanded_child child) (# (get expanded_child child)) (get (get node_org child) i))
+			(insert (get expanded_child child) (# (get expanded_child child)) (get node_org child i))
 		))
 
 		(insert (get expanded child) (# (get expanded child)) expanded_child)
@@ -257,7 +255,7 @@
 		(<< s "(")
 		(<< s (get node value))
 		(for i 0 (< i (# (get node child))) 1 (do
-			(let node_child (struct node) (get (get node child) i))
+			(let node_child (struct node) (get node child i))
 			(let indent_needed int (call node_indent_needed node node_child))
 			(set indent_needed (|| indent_needed (= (get node value) "&&") (= (get node value) "||")))
 			(let indent_depth int (? indent_needed depth (- depth 1)))
@@ -329,9 +327,9 @@
 
 		(if (= (get node value) "@define") (then
 			(set block_start "const ")
-			(<< block_start (get (get (get node child) 0) value))
+			(<< block_start (get node child 0 value))
 			(<< block_start " = ")
-			(<< block_start (get (get (get node child) 1) value))
+			(<< block_start (get node child 1 value))
 			(<< block_start ";")
 
 			(set block_end "")
@@ -378,7 +376,7 @@
 			(remove (get node child) 0 1)
 		))
 		(if (= (get node value) "call") (then
-			(let fname_node (struct node) (get (get node child) 0))
+			(let fname_node (struct node) (get node child 0))
 			(set block_start (get fname_node value))
 			(<< block_start "(")
 			(set block_end ")")
@@ -401,20 +399,20 @@
 			(set block_end "")
 			
 			(if (>= (# (get node child)) 2) (then
-				(set block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+				(set block_start (call node_to_js (+ depth 1) (get node child 1)))
 			) (else
-				(let child (struct node) (get (get node child) 0))
+				(let child (struct node) (get node child 0))
 				(if (= (get child type) @NODE_EXPR) (then
 					(if (|| 
-						(= (get (get (get node child) 0) value) "arr")
-						(= (get (get (get node child) 0) value) "vec"))
+						(= (get node child 0 value) "arr")
+						(= (get node child 0 value) "vec"))
 						(then
 							(set block_start "[]")
 						)
 					)
 					(if (||
-						(= (get (get (get node child) 0) value) "map")
-						(= (get (get (get node child) 0) value) "struct"))
+						(= (get node child 0 value) "map")
+						(= (get node child 0 value) "struct"))
 						(then
 							(set block_start "{}")
 						)
@@ -444,11 +442,11 @@
 			(set block_end ".length")
 		))
 		(if (= (get node value) "insert") (then
-			(set block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(<< block_start ".splice(")
-			(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 			(<< block_start ",0,")
-			(<< block_start (call node_to_js (+ depth 1) (get (get node child) 2)))
+			(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
 			(set block_end ")")
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
@@ -456,18 +454,18 @@
 		))
 		(if (= (get node value) "remove") (then
 			(if (= (get (get (get node child) 1) type) @NODE_INT) (then
-				(set block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+				(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start ".splice(")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 				(<< block_start ",")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 2)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
 				(set block_end ")")
 			))
 			(if (= (get (get (get node child) 1) type) @NODE_STR_QUOTE) (then
 				(set block_start "delete ")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start "[")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 				(set block_end "]")
 			))
 			(while (> (# (get node child)) 0) (do
@@ -475,18 +473,18 @@
 			))
 		))
 		(if (= (get node value) "get") (then
-			(set block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(set block_end "")
 			(for i 1 (< i (# (get node child))) 1 (do
 				(let child (struct node) (get (get node child) i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
 						(<< block_end ".")
-						(<< block_end (call node_to_js (+ depth 1) (get (get node child) i)))
+						(<< block_end (call node_to_js (+ depth 1) (get node child i)))
 						(<< block_end "")
 					) (else
 						(<< block_end "[")
-						(<< block_end (call node_to_js (+ depth 1) (get (get node child) i)))
+						(<< block_end (call node_to_js (+ depth 1) (get node child i)))
 						(<< block_end "]")
 					)
 				)
@@ -496,25 +494,25 @@
 			))
 		))
 		(if (= (get node value) "set") (then
-			(set block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(set block_end "")
 			(let child_last_index int (- (# (get node child)) 1))
 			(for i 1 (< i child_last_index) 1 (do
-				(let child (struct node) (get (get node child) i))
+				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
 						(<< block_end ".")
-						(<< block_end (call node_to_js (+ depth 1) (get (get node child) i)))
+						(<< block_end (call node_to_js (+ depth 1) (get node child i)))
 						(<< block_end "")
 					) (else 
 						(<< block_end "[")
-						(<< block_end (call node_to_js (+ depth 1) (get (get node child) i)))
+						(<< block_end (call node_to_js (+ depth 1) (get node child i)))
 						(<< block_end "]")
 					)
 				)
 			))
 			(<< block_end " = ")
-			(<< block_end (call node_to_js (+ depth 1) (get (get node child) child_last_index)))
+			(<< block_end (call node_to_js (+ depth 1) (get node child child_last_index)))
 
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
@@ -522,7 +520,7 @@
 		))
 		(if (= (get node value) "cast") (then
 			(set block_start "\"\"+")
-			(set block_end (call node_to_js (+ depth 1) (get (get node child) 0)))
+			(set block_end (call node_to_js (+ depth 1) (get node child 0)))
 			(remove (get node child) 0 1)
 			(remove (get node child) 0 1)
 		))
@@ -541,26 +539,26 @@
 		(if (= (get node value) "for") (then
 			(if (= (# (get node child)) 5) (then 
 				(set block_start "for (")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start " = ")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 				(<< block_start "; ")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 2)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
 				(<< block_start "; ")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start " += ")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 3)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 3)))
 				(<< block_start ") ")
 				(remove (get node child) 0 4)
 				(set block_end "")
 			))
 			(if (= (# (get node child)) 4) (then 
 				(set block_start "for (const [")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start ",")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 				(<< block_start "] of Object.entries(")
-				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 2)))
+				(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
 				(<< block_start "))")
 				(remove (get node child) 0 3)
 				(set block_end "")
@@ -568,11 +566,11 @@
 		))
 		(if (= (get node value) "while") (then
 			(set block_start "while ")
-			(let block_simple int (<> (get (get (get node child) 0) type) @NODE_EXPR))
+			(let block_simple int (<> (get node child 0 type) @NODE_EXPR))
 			(if block_simple (then
 				(<< block_start "(")
 			))
-			(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+			(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(if block_simple (then
 				(<< block_start ") ")
 			))
@@ -588,11 +586,11 @@
 			(set block_end "")
 		))
 		(if (= (get node value) "?") (then
-			(set block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
+			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(<< block_start " ? ")
-			(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
+			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 			(<< block_start " : ")
-			(<< block_start (call node_to_js (+ depth 1) (get (get node child) 2)))
+			(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
 			(set block_end "")
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
@@ -627,7 +625,7 @@
 				
 				(if (&& 
 					(= (get node value) "<<") 
-					(= (get (get (get node child) 0) type) @NODE_STR) 
+					(= (get node child 0 type) @NODE_STR) 
 					) (then
 					(set node value "+=")
 				))
@@ -959,9 +957,9 @@
 	; (let prog str (call prog_arrvec))
 	; (let prog str (call prog_structmap))
 	; (let prog str (call prog_fib))
-	(let prog str (call prog_nqueens))
+	; (let prog str (call prog_nqueens))
 	; (let prog str (call prog_hilbert))
-	; (let prog str (call prog_turing))
+	(let prog str (call prog_turing))
     ; (let prog str (call prog_readfile "/workspaces/wax/examples/fib.wax"))
 
 	(let tokens (arr str) (call tokens_parse prog))
