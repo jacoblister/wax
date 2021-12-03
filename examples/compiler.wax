@@ -513,7 +513,7 @@
 					)
 				)
 			))
-			(<< block_end "=")
+			(<< block_end " = ")
 			(<< block_end (call node_to_js (+ depth 1) (get (get node child) child_last_index)))
 
 			(while (> (# (get node child)) 0) (do
@@ -567,11 +567,17 @@
 			))
 		))
 		(if (= (get node value) "while") (then
-			(set block_start "while(")
+			(set block_start "while ")
+			(let block_simple int (<> (get (get (get node child) 0) type) @NODE_EXPR))
+			(if block_simple (then
+				(<< block_start "(")
+			))
 			(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
-			(<< block_start ")")
+			(if block_simple (then
+				(<< block_start ") ")
+			))
 			(set block_end "")
-			(remove (get node child) 0 1)
+			(remove (get node child) 0 1)			
 		))
 		(if (= (get node value) "do") (then
 			(set block_start "{")
@@ -664,6 +670,21 @@
 					(<< s ";")
 				)
 			)
+			; (if (&& (||
+			; 		(= (get node value) "func")
+			; 		(= (get node value) "do")
+			; 		(= (get node value) "then")
+			; 		(= (get node value) "else"))
+			; 		(|| 
+			; 		(= (get node_child value) "let")
+			; 		(= (get node_child value) "get")
+			; 		(= (get node_child value) "set")
+			; 		(= (get node_child value) "call")
+			; 		)
+			; 	) (then
+			; 		(<< s ";")
+			; 	)
+			; )
 
 			(if (&& 
 				indent_needed
