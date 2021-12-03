@@ -232,8 +232,6 @@
 		(= (get node value) "then")
 		(= (get node value) "else")
 		(= (get node value) "struct")
-		(= (get node value) "&&")
-		(= (get node value) "||")
 		) (then
 			(return 1)
 		)
@@ -246,7 +244,6 @@
 
 (func node_to_wax (param depth int) (param node (struct node)) (result str)
 	(let s str (alloc str ""))
-	(let indent str "  ")
 	
 	(if (= (get node type) @NODE_ROOT) (then
 		(for i 0 (< i (# (get node child))) 1 (do
@@ -262,8 +259,10 @@
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let node_child (struct node) (get (get node child) i))
 			(let indent_needed int (call node_indent_needed node node_child))
+			(set indent_needed (|| indent_needed (= (get node value) "&&") (= (get node value) "||")))
 			(let indent_depth int (? indent_needed depth (- depth 1)))
-		
+			(let indent str "  ")
+
 			(if indent_needed (then
 				(<< s "\n")
 				(for i 0 (<= i indent_depth) 1 (do
@@ -302,17 +301,13 @@
 ; ----------------------------------------------------------------------------
 
 (func node_to_js (param depth int) (param node (struct node)) (result str)
-	(let indent str (alloc str ""))
-	(for i 0 (< i depth) 1 (do
-		(<< indent "  ")
-	))
-	
 	(let s str (alloc str ""))
 	
 	(if (= (get node type) @NODE_ROOT) (then
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let child str (call node_to_js 0 (get (get node child) i)))
 			(<< s child)
+			(<< s "\n")
 		))
 		
 		(<< s "\n\n")
@@ -327,18 +322,15 @@
 	))
 	
 	(if (= (get node type) @NODE_EXPR) (then
-		(<< s "\n")
-		(<< s indent)
-
 		(let block_start str (alloc str "("))
 		(<< block_start (get node value))
 		(let block_end str (alloc str ")"))
-		(let block_seperator str " ")
+		(let block_seperator str (alloc str " "))
 
 		(if (= (get node value) "@define") (then
 			(set block_start "const ")
 			(<< block_start (get (get (get node child) 0) value))
-			(<< block_start "=")
+			(<< block_start " = ")
 			(<< block_start (get (get (get node child) 1) value))
 			(<< block_start ";")
 
@@ -391,7 +383,7 @@
 			(<< block_start "(")
 			(set block_end ")")
 			(remove (get node child) 0 1)
-			(set block_seperator ",")
+			(set block_seperator ", ")
 		))
 		(if (|| 
 			(= (get node value) "let") 
@@ -535,7 +527,7 @@
 			(remove (get node child) 0 1)
 		))
 		(if (= (get node value) "if") (then
-			(set block_start "if")
+			(set block_start "if ")
 			(set block_end "")
 		))
 		(if (= (get node value) "then") (then
@@ -550,15 +542,15 @@
 			(if (= (# (get node child)) 5) (then 
 				(set block_start "for (")
 				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
-				(<< block_start "=")
+				(<< block_start " = ")
 				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 1)))
-				(<< block_start ";")
+				(<< block_start "; ")
 				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 2)))
-				(<< block_start ";")
+				(<< block_start "; ")
 				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 0)))
-				(<< block_start "+=")
+				(<< block_start " += ")
 				(<< block_start (call node_to_js (+ depth 1) (get (get node child) 3)))
-				(<< block_start ")")
+				(<< block_start ") ")
 				(remove (get node child) 0 4)
 				(set block_end "")
 			))
@@ -645,15 +637,25 @@
 
 		(<< s block_start)
 
-		(let last_child_expr int 0)
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let node_child (struct node) (get (get node child) i))
-			(set last_child_expr (= (get node_child type) @NODE_EXPR))
-			(let child str (call node_to_js (+ depth 1) node_child))
-			(if (> i 0) (then
-				(<< s block_seperator)
+			(let indent_needed int (call node_indent_needed node node_child))
+			(let indent_depth int (? indent_needed depth (- depth 1)))
+			(let indent str "  ")
+
+			(if indent_needed (then
+				(<< s "\n")
+				(for i 0 (<= i indent_depth) 1 (do
+					(<< s indent)
+				))
+			) (else (if (> i 0) (then
+					(<< s block_seperator)
+				))
 			))
+
+			(let child str (call node_to_js (+ indent_depth 1) node_child))
 			(<< s child)
+
 			(if (||
 				(= (get node value) "func")
 				(= (get node value) "do")
@@ -662,12 +664,18 @@
 					(<< s ";")
 				)
 			)
+
+			(if (&& 
+				indent_needed
+				(= i (- (# (get node child)) 1)) ; is last child
+				) (then
+				(<< s "\n")
+				(for i 0 (< i indent_depth) 1 (do
+					(<< s indent)
+				))
+			))			
 		))
-		
-		(if last_child_expr (then
-			(<< s "\n")
-			(<< s indent)
-		))
+	
 		(<< s block_end)
 	))
 
@@ -930,18 +938,18 @@
 	; (let prog str (call prog_arrvec))
 	; (let prog str (call prog_structmap))
 	; (let prog str (call prog_fib))
-	; (let prog str (call prog_nqueens))
+	(let prog str (call prog_nqueens))
 	; (let prog str (call prog_hilbert))
-	(let prog str (call prog_turing))
-    ; (let prog str (call prog_readfile "/workspaces/wax/examples/compiler.wax"))
+	; (let prog str (call prog_turing))
+    ; (let prog str (call prog_readfile "/workspaces/wax/examples/fib.wax"))
 
 	(let tokens (arr str) (call tokens_parse prog))
 	; (print (call tokens_to_string tokens 100))
 
 	(let root (struct node) (call node_from_tokens tokens))
    	
-	(let out str (call node_to_wax 0 root))
-   	; (let out str (call node_to_js 0 root))
+	; (let out str (call node_to_wax 0 root))
+   	(let out str (call node_to_js 0 root))
 	(print out)
 
 	(return 0)
