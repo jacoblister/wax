@@ -245,7 +245,7 @@
 	
 	(if (= (get node type) @NODE_ROOT) (then
 		(for i 0 (< i (# (get node child))) 1 (do
-			(let child str (call node_to_wax 0 (get (get node child) i)))
+			(let child str (call node_to_wax 0 (get node child i)))
 			(<< s child)
 			(<< s "\n")
 		))
@@ -303,7 +303,7 @@
 	
 	(if (= (get node type) @NODE_ROOT) (then
 		(for i 0 (< i (# (get node child))) 1 (do
-			(let child str (call node_to_js 0 (get (get node child) i)))
+			(let child str (call node_to_js 0 (get node child i)))
 			(<< s child)
 			(<< s "\n")
 		))
@@ -346,16 +346,16 @@
 		))
 		(if (= (get node value) "func") (then
 			(set block_start "function ")
-			(let fname_node (struct node) (get (get node child) 0))
+			(let fname_node (struct node) (get node child 0))
 			(<< block_start (get fname_node value))
 			(<< block_start	"(")
 
 			(let param_count int 0)
 			(let i int 0)
 			(while (< i (# (get node child))) (do
-				(let child_node (struct node) (get (get node child) i))
+				(let child_node (struct node) (get node child i))
 				(if (= (get child_node value) "param") (then
-					(let param_node (struct node) (get (get child_node child) 0))
+					(let param_node (struct node) (get child_node child 0))
 					(if (> param_count 0) (then
 						(<< block_start ", ")
 					))
@@ -453,7 +453,7 @@
 			))
 		))
 		(if (= (get node value) "remove") (then
-			(if (= (get (get (get node child) 1) type) @NODE_INT) (then
+			(if (= (get node child 1 type) @NODE_INT) (then
 				(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start ".splice(")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
@@ -461,7 +461,7 @@
 				(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
 				(set block_end ")")
 			))
-			(if (= (get (get (get node child) 1) type) @NODE_STR_QUOTE) (then
+			(if (= (get node child 1 type) @NODE_STR_QUOTE) (then
 				(set block_start "delete ")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start "[")
@@ -476,7 +476,7 @@
 			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(set block_end "")
 			(for i 1 (< i (# (get node child))) 1 (do
-				(let child (struct node) (get (get node child) i))
+				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
 						(<< block_end ".")
@@ -642,7 +642,7 @@
 		(<< s block_start)
 
 		(for i 0 (< i (# (get node child))) 1 (do
-			(let node_child (struct node) (get (get node child) i))
+			(let node_child (struct node) (get node child i))
 			(let indent_needed int (call node_indent_needed node node_child))
 			(let indent_depth int (? indent_needed depth (- depth 1)))
 			(let indent str "  ")
