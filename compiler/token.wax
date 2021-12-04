@@ -1,0 +1,107 @@
+; ---------------------------------------------------------------------------- 
+; - Tokenizer -
+; ---------------------------------------------------------------------------- 
+
+(@define CHAR_TAB 9)
+(@define CHAR_NL 10)
+(@define CHAR_SPACE 32)
+(@define CHAR_DOUBLE_QUOTE 34)
+(@define CHAR_SINGLE_QUOTE 39)
+(@define CHAR_PAREN_OPEN 40)
+(@define CHAR_PAREN_CLOSE 41)
+(@define CHAR_SEMICOLON 59)
+
+(func token_parse (param input str) (result (arr str))
+	(let token str (alloc str))
+	(let tokens (arr str) (alloc (arr str)))
+	(let in_comment int 0)
+	(let in_single_quote int 0)
+	(let in_double_quote int 0)
+	(let in_quote int 0)
+
+	(for i 0 (< i (# input)) 1 (do
+		(let c int (get input i))
+
+		(if (= c @CHAR_SEMICOLON) (then
+			(set in_comment 1)
+		))
+		(if (= c @CHAR_NL) (then
+			(if in_comment (then
+				(set token "")
+			))
+			(set in_comment 0)
+		))
+		
+		(if (&& (! in_double_quote) (= c @CHAR_SINGLE_QUOTE)) (then 
+			(set in_single_quote (! in_single_quote))
+		))
+		(if (&& (! in_single_quote) (= c @CHAR_DOUBLE_QUOTE)) (then 
+			(set in_double_quote (! in_double_quote))
+		))
+		(set in_quote (|| in_single_quote in_double_quote))
+
+		(let whitespace int (|| (= c @CHAR_TAB) (= c @CHAR_SPACE) (= c @CHAR_NL)))
+		(let paren int (|| (= c @CHAR_PAREN_OPEN) (= c @CHAR_PAREN_CLOSE)))
+
+		(if (&& (! in_quote) (! in_comment) (|| whitespace paren)) (then
+			(if (> (# token) 0) (then
+				(insert tokens (# tokens) token)
+			))
+
+			(if paren (then
+				(set token "")
+				(<< token c)
+ 				(insert tokens (# tokens) token)
+			))
+
+			(set token "")
+			) (else 
+				(<< token c)
+			)
+		)
+	))
+
+	(return tokens)
+)
+
+; (func token_to_string (param tokens (arr str)) (param width int) (result str)
+; 	(let s str (alloc str ""))
+; 	(let line str (alloc str ""))
+; 	(for i 0 (< i (# tokens)) 1 (do
+; 		(let token str "")
+; 		(for j 0 (< j (# (get tokens i))) 1 (do
+; 			(let c int (get tokens i j))
+; 			(let encoded str "")
+; 			(<< encoded c)
+; 			(if (= c '\"') (then
+; 				(set encoded "\\\"")
+; 			))
+; 			(if (= c '\\') (then
+; 				(set encoded "")
+; 				(<< encoded '\\')
+; 				(<< encoded '\\')
+; 			))
+; 			(<< token encoded)
+; 		))
+
+; 		(<< line token)
+; 		(if (> (# line) width) (then
+; 			(<< s "\"")
+; 			(<< s line)
+; 			(<< s "\\n\"\n")
+; 			(set line "")
+; 		) (else
+; 			(if (&& 
+; 				(<> token "(") 
+; 				(<> token ")")
+; 				) (then
+; 				(<< line " ")
+; 			))
+; 		))
+; 	))
+; 	(<< s "\"")
+; 	(<< s line)
+; 	(<< s "\\n\"\n")
+
+; 	(return s)
+; )

@@ -1,0 +1,24 @@
+(struct test_test
+    (let name str)
+)
+
+(func test_init (param name str) (result (struct test_test))
+    (let test (struct test_test) (alloc (struct test_test)))
+    (set test name name)
+    (return test)
+)
+
+(func test_assert_equal (param test (struct test_test)) (param expected str) (param actual str) (param msg str)
+    (if (<> expected actual) (then
+        (let test_name str (get test name))
+        (<< msg ":")
+        (<< test_name msg)
+        (print msg)
+
+        (print "expected:")
+        (print expected)
+        (print "")
+        (print "actual:")
+        (print actual)
+    ))
+)

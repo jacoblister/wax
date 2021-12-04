@@ -1,0 +1,37 @@
+(@include "test.wax")
+(@include "token.wax")
+
+(func token_parse_test_empty
+    (let test (struct test_test) (call test_init "token_parse_test_empty"))
+
+    (let source str	"")
+    (let tokens (arr str) (call token_parse source))
+
+    (call test_assert_equal test 0 (# tokens) "correct number of tokens")
+)
+
+(func token_parse_test_simple
+    (let test (struct test_test) (call test_init "token_parse_test_simple"))
+
+    (let source str	"(func main)")
+    (let tokens (arr str) (call token_parse source))
+
+    (call test_assert_equal test 4 (# tokens) "correct number of tokens")
+)
+
+(func token_parse_test_helloworld
+    (let test (struct test_test) (call test_init "token_parse_test_helloworld"))
+
+    (let source str	"(func main (result int)\n(print \"HelloWorld!\")\n(return 0))")
+    (let tokens (arr str) (call token_parse source))
+
+    (call test_assert_equal test 16 (# tokens) "correct number of tokens")
+)
+
+(func main (result int)
+  (call token_parse_test_empty)
+  (call token_parse_test_simple)
+  (call token_parse_test_helloworld)
+  
+  (return 0)
+)

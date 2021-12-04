@@ -1,0 +1,158 @@
+; ---------------------------------------------------------------------------- 
+; - S-Expression Node tree -
+; ---------------------------------------------------------------------------- 
+
+(@define NODE_ROOT 0)
+(@define NODE_EXPR 1)
+(@define NODE_PREPROCESS 2)
+(@define NODE_CHAR 3)
+(@define NODE_STR 4)
+(@define NODE_STR_QUOTE 5)
+(@define NODE_INT 6)
+(@define NODE_FLOAT 7)
+
+(struct node
+	(let type int)
+	(let value str)
+	(let child (arr (struct node)))
+)
+
+(func node_new (param type int) (param value str) (result (struct node))
+	(let node_new (struct node) (alloc (struct node)))
+	(set node_new type type)
+	(set node_new value value)
+	(set node_new child (alloc (arr (struct node))))
+	
+	(return node_new)
+)
+
+(func node_type_from_token (param token str) (result int)
+	(if (> (# token) 0) (then
+		(if (= (get token 0) '@') (then
+            (return @NODE_PREPROCESS)
+		))
+		(if (= (get token 0) '\'') (then
+			(return @NODE_CHAR)
+		))
+		(if (= (get token 0) '\"') (then
+			(return @NODE_STR_QUOTE)
+		))
+		(if (&&
+			(>= (get token 0) '0')
+			(<= (get token 0) '9')
+			) (then
+				(return @NODE_INT)
+		))
+	))
+	(return @NODE_STR)
+)
+
+(func node_from_tokens (param tokens (arr str)) (result (struct node))
+	(let stack (arr (struct node)) (alloc (arr (struct node))))
+	(insert stack (# stack) (call node_new @NODE_ROOT ""))
+
+	(let i int 0)
+	(while (< i (# tokens)) (do
+		(let token str (get tokens i))
+
+		(if (= token "(") (then
+			(let node (struct node)
+				(call node_new @NODE_EXPR (get tokens (+ i 1)))
+			)
+			(let parent (struct node) (get stack (- (# stack) 1)))
+			(insert (get parent child) (# (get parent child)) node)
+			(insert stack (# stack) node)
+		
+			(set i (+ i 1))			
+			) (else (if (= token ")") (then
+				(remove stack (- (# stack) 1) 1)
+			) (else
+					(let child (struct node)
+						(call node_new (call node_type_from_token token) token)
+					)
+					(let node (struct node) (get stack (- (# stack) 1)))
+					(insert (get node child) (# (get node child)) child)
+				))
+			)
+		)
+
+		(set i (+ i 1))
+	))
+
+	(return (get stack 0))
+)
+
+; eg (+ a b c) -> (+ (+ a b) c) 
+(func node_expand (param node_org (struct node)) (result (struct node))
+	(if (< (# (get node_org child)) 2) (then
+		(return node_org)
+	))
+	
+	(let expanded (struct node) (call node_new @NODE_EXPR (get node_org value)))
+
+	(insert (get expanded child) (# (get expanded child)) (get node_org child 0))
+	(if (= (# (get node_org child)) 2) (then
+		(insert (get expanded child) (# (get expanded child)) (get node_org child 1))
+	) (else
+		(let expanded_child (struct node) (call node_new @NODE_EXPR (get node_org value)))
+		(for i 1 (< i (# (get node_org child))) 1 (do
+			(insert (get expanded_child child) (# (get expanded_child child)) (get node_org child i))
+		))
+
+		(insert (get expanded child) (# (get expanded child)) expanded_child)
+	))
+	(return expanded)
+)
+
+(func node_indent_needed (param node (struct node)) (param child (struct node)) (result int)
+	(if (<> (get child type) @NODE_EXPR) (then
+		(return 0)
+	))
+
+	(if (||
+		(= (get child value) "param") 
+		(= (get child value) "result")
+		) (then
+			(return 0)
+	))
+	(if (||
+		(= (get node value) "func")
+		(= (get node value) "do")
+		(= (get node value) "then")
+		(= (get node value) "else")
+		(= (get node value) "struct")
+		) (then
+			(return 1)
+		)
+	)
+)
+
+(extern readfile (param filename str) (result str))
+(func node_preprocess (param node (struct node)) (result (struct node))
+    (let i int 0)
+    (while (< i (# (get node child))) (do
+        (if (= (get node child i value) "@include") (then
+            (let quotedfilename str (get node child i child 0 value))
+            (remove (get node child) i 1)
+            
+            (let filename str "")
+            (for j 1 (< j (- (# quotedfilename) 1)) 1 (do 
+                (<< filename (get quotedfilename j))
+            ))
+            (let include_str str (call readfile filename))
+
+        	(let tokens (arr str) (call token_parse include_str))
+            (let include (struct node) (call node_from_tokens tokens))
+            ; (set include (call node_preprocess include)) - later!
+
+            (for j 0 (< j (# (get include child))) 1 (do 
+                (insert (get node child) (+ i j) (get include child j))
+            ))
+
+        ) (else 
+            (set i (+ i 1))
+        ))
+    ))
+
+    (return node)
+)

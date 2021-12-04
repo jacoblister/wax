@@ -1,0 +1,57 @@
+; ----------------------------------------------------------------------------
+; - WAX language target -
+; ----------------------------------------------------------------------------
+
+(func node_to_wax (param depth int) (param node (struct node)) (result str)
+	(let s str (alloc str ""))
+	
+	(if (= (get node type) @NODE_ROOT) (then
+		(for i 0 (< i (# (get node child))) 1 (do
+			(let child str (call node_to_wax 0 (get node child i)))
+			(<< s child)
+			(<< s "\n")
+		))
+	))
+
+	(if (= (get node type) @NODE_EXPR) (then
+		(<< s "(")
+		(<< s (get node value))
+		(for i 0 (< i (# (get node child))) 1 (do
+			(let node_child (struct node) (get node child i))
+			(let indent_needed int (call node_indent_needed node node_child))
+			(set indent_needed (|| indent_needed (= (get node value) "&&") (= (get node value) "||")))
+			(let indent_depth int (? indent_needed depth (- depth 1)))
+			(let indent str "  ")
+
+			(if indent_needed (then
+				(<< s "\n")
+				(for i 0 (<= i indent_depth) 1 (do
+					(<< s indent)
+				))
+			) (else 
+				(<< s " ")
+			))
+
+			(let child str (call node_to_wax (+ indent_depth 1) node_child))
+			(<< s child)
+
+			(if (&& 
+				indent_needed
+				(= i (- (# (get node child)) 1)) ; is last child
+				) (then
+				(<< s "\n")
+				(for i 0 (< i indent_depth) 1 (do
+					(<< s indent)
+				))
+			))
+
+		))
+		(<< s ")")
+	))
+
+	(if (<> (get node type) @NODE_EXPR) (then
+		(<< s (get node value))
+	))
+
+	(return s)
+)

@@ -1,0 +1,4 @@
+(func main (result int)
+    (print "(i<j)")
+    (return 0)
+)
