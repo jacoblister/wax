@@ -284,8 +284,9 @@
 			))
 			(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(if block_simple (then
-				(<< block_start ") ")
+				(<< block_start ")")
 			))
+			(<< block_start " ")
 			(set block_end "")
 			(remove (get node child) 0 1)			
 		))
