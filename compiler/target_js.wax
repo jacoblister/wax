@@ -225,15 +225,17 @@
 			))
 		))
 		(if (= (get node value) "cast") (then
-			(set block_start "\"\"+")
-			(set block_end (call node_to_js (+ depth 1) (get node child 0)))
+			(if (= (get node child 1 value) "str") (then
+				(set block_start "\"\"+")
+				(set block_end (call node_to_js (+ depth 1) (get node child 0)))
+			))
+			(if (= (get node child 1 value) "int") (then
+				(set block_start (call node_to_js (+ depth 1) (get node child 0)))
+				(set block_end ".charCodeAt(0)")
+			))
 			(remove (get node child) 0 1)
 			(remove (get node child) 0 1)
 		))
-		; (if (= (get node value) "if") (then
-		; 	(set block_start "if ")
-		; 	(set block_end "")
-		; ))
 		(if (= (get node value) "then") (then
 			(set block_start "{")
 			(set block_end "}")

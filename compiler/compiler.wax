@@ -11,15 +11,17 @@
 (asm "}")
 
 (func main (result int)
+	; (let prog str "(func main)")
     ; (let prog str (call readfile "../examples/helloworld.wax"))
     ; (let prog str (call readfile "../examples/fib.wax"))
     ; (let prog str (call readfile "../examples/nqueens.wax"))
     ; (let prog str (call readfile "../examples/hilbert.wax"))
     ; (let prog str (call readfile "../examples/turing_mod.wax"))
+    ; (let prog str (call readfile "tests/string.wax"))
     (let prog str (call readfile "token_test.wax"))
 
 	(let tokens (arr str) (call token_parse prog))
-	; (print (call token_to_string tokens 100))
+	; (call token_write_to_output tokens)
 
 	(let root (struct node) (call node_from_tokens tokens))
 	(set root (call node_preprocess root))

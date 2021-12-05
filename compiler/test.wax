@@ -10,15 +10,16 @@
 
 (func test_assert_equal (param test (struct test_test)) (param expected str) (param actual str) (param msg str)
     (if (<> expected actual) (then
-        (let test_name str (get test name))
-        (<< msg ":")
-        (<< test_name msg)
+        (print "----")
+        (print (get test name))
         (print msg)
+        (print "")
 
         (print "expected:")
         (print expected)
         (print "")
         (print "actual:")
         (print actual)
+        (print "")
     ))
 )
