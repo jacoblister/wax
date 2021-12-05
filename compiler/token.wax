@@ -1,14 +1,14 @@
 ; ---------------------------------------------------------------------------- 
 ; - Tokenizer -
 ; ---------------------------------------------------------------------------- 
-(@define CHAR_TAB 9)
-(@define CHAR_NL 10)
-(@define CHAR_SPACE 32)
-(@define CHAR_DOUBLE_QUOTE 34)
-(@define CHAR_SINGLE_QUOTE 39)
-(@define CHAR_PAREN_OPEN 40)
-(@define CHAR_PAREN_CLOSE 41)
-(@define CHAR_SEMICOLON 59)
+(@define TOKEN_CHAR_TAB 9)
+(@define TOKEN_CHAR_NL 10)
+(@define TOKEN_CHAR_SPACE 32)
+(@define TOKEN_CHAR_DOUBLE_QUOTE 34)
+(@define TOKEN_CHAR_SINGLE_QUOTE 39)
+(@define TOKEN_CHAR_PAREN_OPEN 40)
+(@define TOKEN_CHAR_PAREN_CLOSE 41)
+(@define TOKEN_CHAR_SEMICOLON 59)
 
 (func token_parse (param input str) (result (arr str))
 	(let token str (alloc str))
@@ -21,26 +21,26 @@
 	(for i 0 (< i (# input)) 1 (do
 		(let c int (cast (get input i) int))
 
-		(if (= c @CHAR_SEMICOLON) (then
+		(if (= c @TOKEN_CHAR_SEMICOLON) (then
 			(set in_comment 1)
 		))
-		(if (= c @CHAR_NL) (then
+		(if (= c @TOKEN_CHAR_NL) (then
 			(if in_comment (then
 				(set token "")
 			))
 			(set in_comment 0)
 		))
 		
-		(if (&& (! in_double_quote) (= c @CHAR_SINGLE_QUOTE)) (then 
+		(if (&& (! in_double_quote) (= c @TOKEN_CHAR_SINGLE_QUOTE)) (then 
 			(set in_single_quote (! in_single_quote))
 		))
-		(if (&& (! in_single_quote) (= c @CHAR_DOUBLE_QUOTE)) (then 
+		(if (&& (! in_single_quote) (= c @TOKEN_CHAR_DOUBLE_QUOTE)) (then 
 			(set in_double_quote (! in_double_quote))
 		))
 		(set in_quote (|| in_single_quote in_double_quote))
 
-		(let whitespace int (|| (= c @CHAR_TAB) (= c @CHAR_SPACE) (= c @CHAR_NL)))
-		(let paren int (|| (= c @CHAR_PAREN_OPEN) (= c @CHAR_PAREN_CLOSE)))
+		(let whitespace int (|| (= c @TOKEN_CHAR_TAB) (= c @TOKEN_CHAR_SPACE) (= c @TOKEN_CHAR_NL)))
+		(let paren int (|| (= c @TOKEN_CHAR_PAREN_OPEN) (= c @TOKEN_CHAR_PAREN_CLOSE)))
 
 		(if (&& (! in_quote) (! in_comment) (|| whitespace paren)) (then
 			(if (> (# token) 0) (then
