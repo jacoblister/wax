@@ -1,0 +1,29 @@
+(extern readfile (param filename str) (result str))
+(func node_preprocess (param node (struct node)) (result (struct node))
+    (let i int 0)
+    (while (< i (# (get node child))) (do
+        (if (= (get node child i value) "@include") (then
+            (let quotedfilename str (get node child i child 0 value))
+            (remove (get node child) i 1)
+            
+            (let filename str "")
+            (for j 1 (< j (- (# quotedfilename) 1)) 1 (do 
+                (<< filename (get quotedfilename j))
+            ))
+            (let include_str str (call readfile filename))
+
+        	(let tokens (arr str) (call token_parse include_str))
+            (let include (struct node) (call node_from_tokens tokens))
+            ; (set include (call node_preprocess include)) - later!
+
+            (for j 0 (< j (# (get include child))) 1 (do 
+                (insert (get node child) (+ i j) (get include child j))
+            ))
+
+        ) (else 
+            (set i (+ i 1))
+        ))
+    ))
+
+    (return node)
+)

@@ -1,0 +1,40 @@
+(@define CHAR_DOUBLE_QUOTE 34)
+(@define CHAR_SINGLE_QUOTE 39)
+(@define CHAR_PAREN_OPEN 40)
+(@define CHAR_PAREN_CLOSE 41)
+
+(func string_alloc_test
+  (let str_noalloc str)
+  (let str_alloc str (alloc str))
+  (let str_alloc_init str (alloc str "init"))
+  (let buf str (alloc str "init"))
+  (<< buf ':')
+  (<< buf str_alloc_init)
+  (print buf)
+)
+
+(func string_quote_test
+  (let double_quote str "quote double contains 'quote single' string")
+  (print double_quote)
+  (let double_quote_apostrophe str "quote double contains apostrophe's string")
+  (print double_quote_apostrophe)
+)
+
+(func string_char_test
+    (let string str "()")
+    (let c int (cast (get string 0) int))
+    (print (= c @CHAR_PAREN_OPEN))
+)
+
+(func string_int_shift_operator_test
+  (let non_string_op int (<< 1 8))
+  (print non_string_op)
+)
+
+(func main (result int)
+  (call string_alloc_test)
+  (call string_quote_test)
+  (call string_char_test)
+  (call string_int_shift_operator_test)
+  (return 0)
+)

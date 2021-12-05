@@ -26,20 +26,26 @@
 	(return node_new)
 )
 
+(@define NODE_CHAR_DOUBLE_QUOTE 34)
+(@define NODE_CHAR_SINGLE_QUOTE 39)
+(@define NODE_CHAR_ZERO 48)
+(@define NODE_CHAR_NINE 78)
+(@define NODE_CHAR_AT 64)
+
 (func node_type_from_token (param token str) (result int)
 	(if (> (# token) 0) (then
-		(if (= (get token 0) '@') (then
+		(if (= (get token 0) @NODE_CHAR_AT) (then
             (return @NODE_PREPROCESS)
 		))
-		(if (= (get token 0) '\'') (then
+		(if (= (get token 0) @NODE_CHAR_SINGLE_QUOTE) (then
 			(return @NODE_CHAR)
 		))
-		(if (= (get token 0) '\"') (then
+		(if (= (get token 0) @NODE_CHAR_DOUBLE_QUOTE) (then
 			(return @NODE_STR_QUOTE)
 		))
 		(if (&&
-			(>= (get token 0) '0')
-			(<= (get token 0) '9')
+			(>= (get token 0) @NODE_CHAR_ZERO)
+			(<= (get token 0) @NODE_CHAR_NINE)
 			) (then
 				(return @NODE_INT)
 		))
@@ -125,34 +131,4 @@
 			(return 1)
 		)
 	)
-)
-
-(extern readfile (param filename str) (result str))
-(func node_preprocess (param node (struct node)) (result (struct node))
-    (let i int 0)
-    (while (< i (# (get node child))) (do
-        (if (= (get node child i value) "@include") (then
-            (let quotedfilename str (get node child i child 0 value))
-            (remove (get node child) i 1)
-            
-            (let filename str "")
-            (for j 1 (< j (- (# quotedfilename) 1)) 1 (do 
-                (<< filename (get quotedfilename j))
-            ))
-            (let include_str str (call readfile filename))
-
-        	(let tokens (arr str) (call token_parse include_str))
-            (let include (struct node) (call node_from_tokens tokens))
-            ; (set include (call node_preprocess include)) - later!
-
-            (for j 0 (< j (# (get include child))) 1 (do 
-                (insert (get node child) (+ i j) (get include child j))
-            ))
-
-        ) (else 
-            (set i (+ i 1))
-        ))
-    ))
-
-    (return node)
 )

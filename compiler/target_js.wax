@@ -12,7 +12,6 @@
 			(<< s "\n")
 		))
 		
-		(<< s "\n\n")
 		(<< s "main()\n")
 	))
 
@@ -159,7 +158,7 @@
 			))
 		))
 		(if (= (get node value) "remove") (then
-			(if (= (get node child 1 type) @NODE_INT) (then
+			(if (<> (get node child 1 type) @NODE_STR_QUOTE) (then
 				(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start ".splice(")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))

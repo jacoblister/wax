@@ -49,13 +49,13 @@
 
 			(if paren (then
 				(set token "")
-				(<< token c)
+				(<< token (get input i))
  				(insert tokens (# tokens) token)
 			))
 
 			(set token "")
 			) (else 
-				(<< token c)
+				(<< token (get input i))
 			)
 		)
 	))
