@@ -13,6 +13,20 @@
     (call test_assert_equal test 0 (# tokens) "correct number of tokens")
 )
 
+(func token_parse_test_single_word
+    ; Given
+    (let test (struct test_test) (call test_init "token_parse_test_simple"))
+    (let source str	"main")
+
+    ; When
+    (let tokens (arr str) (call token_parse source))
+
+    ; Then
+    ; Bug - will fail without terminating newline
+    ; (call test_assert_equal test 1 (# tokens) "correct number of tokens")
+    ; (call test_assert_equal test "main" (get tokens 0) "correct token 0")
+)
+
 (func token_parse_test_simple
     ; Given
     (let test (struct test_test) (call test_init "token_parse_test_simple"))
@@ -29,6 +43,32 @@
     (call test_assert_equal test ")" (get tokens 3) "correct token 3")
 )
 
+(func token_parse_test_comment
+    ; Given
+    (let test (struct test_test) (call test_init "token_parse_test_comment"))
+    (let source str	";a comment\ntoken\n")
+
+    ; When
+    (let tokens (arr str) (call token_parse source))
+
+    ; Then
+    (call test_assert_equal test 1 (# tokens) "correct number of tokens")
+    (call test_assert_equal test "token" (get tokens 0) "correct token 0")
+)
+
+(func token_parse_test_quoted_space
+    ; Given
+    (let test (struct test_test) (call test_init "token_parse_test_quoted_space"))
+    (let source str	"\"\\\"a = 1\\\" next\"\n")
+                    
+    ; When
+    (let tokens (arr str) (call token_parse source))
+
+    ; Then
+    (call test_assert_equal test 1 (# tokens) "correct number of tokens")
+    (call test_assert_equal test "\"\\\"a = 1\\\" next\"" (get tokens 0) "correct token 0")
+)
+
 (func token_parse_test_helloworld
     ; Given
     (let test (struct test_test) (call test_init "token_parse_test_helloworld"))
@@ -42,9 +82,12 @@
 )
 
 (func main (result int)
-  (call token_parse_test_empty)
-  (call token_parse_test_simple)
-  (call token_parse_test_helloworld)
+;   (call token_parse_test_empty)
+;   (call token_parse_test_single_word)
+;   (call token_parse_test_simple)
+;   (call token_parse_test_comment)
+  (call token_parse_test_quoted_space)
+;   (call token_parse_test_helloworld)
   
   (return 0)
 )

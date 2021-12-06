@@ -9,6 +9,7 @@
 (@define TOKEN_CHAR_PAREN_OPEN 40)
 (@define TOKEN_CHAR_PAREN_CLOSE 41)
 (@define TOKEN_CHAR_SEMICOLON 59)
+(@define TOKEN_CHAR_BACKSLASH 92)
 
 (func token_parse (param input str) (result (arr str))
 	(let token str (alloc str))
@@ -17,27 +18,39 @@
 	(let in_single_quote int 0)
 	(let in_double_quote int 0)
 	(let in_quote int 0)
+	(let in_quote_escape int 0)
 
 	(for i 0 (< i (# input)) 1 (do
 		(let c int (cast (get input i) int))
 
-		(if (= c @TOKEN_CHAR_SEMICOLON) (then
-			(set in_comment 1)
-		))
-		(if (= c @TOKEN_CHAR_NL) (then
-			(if in_comment (then
-				(set token "")
+		(if in_quote_escape (then
+			(set in_quote_escape 0)
+		) (else
+			(if (&& (! in_double_quote) (= c @TOKEN_CHAR_SINGLE_QUOTE)) (then 
+				(set in_single_quote (! in_single_quote))
 			))
-			(set in_comment 0)
+			(if (&& (! in_single_quote) (= c @TOKEN_CHAR_DOUBLE_QUOTE)) (then 
+				(set in_double_quote (! in_double_quote))
+			))
+			(set in_quote (|| in_single_quote in_double_quote))
+
+			(if in_quote (then
+				(if (= c @TOKEN_CHAR_BACKSLASH) (then
+					(set in_quote_escape 1)
+				))
+			))
+			(if (! in_quote) (then
+				(if (= c @TOKEN_CHAR_SEMICOLON) (then
+					(set in_comment 1)
+				))
+			))
+			(if (= c @TOKEN_CHAR_NL) (then
+				(if in_comment (then
+					(set token "")
+				))
+				(set in_comment 0)
+			))
 		))
-		
-		(if (&& (! in_double_quote) (= c @TOKEN_CHAR_SINGLE_QUOTE)) (then 
-			(set in_single_quote (! in_single_quote))
-		))
-		(if (&& (! in_single_quote) (= c @TOKEN_CHAR_DOUBLE_QUOTE)) (then 
-			(set in_double_quote (! in_double_quote))
-		))
-		(set in_quote (|| in_single_quote in_double_quote))
 
 		(let whitespace int (|| (= c @TOKEN_CHAR_TAB) (= c @TOKEN_CHAR_SPACE) (= c @TOKEN_CHAR_NL)))
 		(let paren int (|| (= c @TOKEN_CHAR_PAREN_OPEN) (= c @TOKEN_CHAR_PAREN_CLOSE)))

@@ -245,7 +245,7 @@
 		))
 		(if (= (get node value) "for") (then
 			(if (= (# (get node child)) 5) (then 
-				(set block_start "for (")
+				(set block_start "for (let ")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start " = ")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))

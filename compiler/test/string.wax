@@ -1,3 +1,10 @@
+(insert lines 0 "\"N=\" ))(<< o (cast @N str ))(<< o \" solution #\" )(<< o (cast s str ))(<< o \"\\n\" )(for y 0 (< y\n")
+
+(func string_comment_test
+  (let comment str "; line comment")
+  (print comment)
+)
+
 (@define CHAR_DOUBLE_QUOTE 34)
 (@define CHAR_SINGLE_QUOTE 39)
 (@define CHAR_PAREN_OPEN 40)
@@ -33,6 +40,7 @@
 
 (func main (result int)
   (call string_alloc_test)
+  (call string_comment_test)
   (call string_quote_test)
   (call string_char_test)
   (call string_int_shift_operator_test)

@@ -20,6 +20,7 @@
     ; (let prog str (call readfile "../examples/turing_mod.wax"))
     ; (let prog str (call readfile "test/string.wax"))
     ; (let prog str (call readfile "test/array.wax"))
+    ; (let prog str (call readfile "test/nasty.wax"))
     ; (let prog str (call readfile "token_test.wax"))
     ; (let prog str (call readfile "node_test.wax"))
     ; (let prog str (call readfile "target_wax_test.wax"))
