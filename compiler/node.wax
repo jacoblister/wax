@@ -34,18 +34,20 @@
 
 (func node_type_from_token (param token str) (result int)
 	(if (> (# token) 0) (then
-		(if (= (get token 0) @NODE_CHAR_AT) (then
+		(let c int (cast (get token 0) int))
+
+		(if (= c @NODE_CHAR_AT) (then
             (return @NODE_PREPROCESS)
 		))
-		(if (= (get token 0) @NODE_CHAR_SINGLE_QUOTE) (then
+		(if (= c @NODE_CHAR_SINGLE_QUOTE) (then
 			(return @NODE_CHAR)
 		))
-		(if (= (get token 0) @NODE_CHAR_DOUBLE_QUOTE) (then
+		(if (= c @NODE_CHAR_DOUBLE_QUOTE) (then
 			(return @NODE_STR_QUOTE)
 		))
 		(if (&&
-			(>= (get token 0) @NODE_CHAR_ZERO)
-			(<= (get token 0) @NODE_CHAR_NINE)
+			(>= c @NODE_CHAR_ZERO)
+			(<= c @NODE_CHAR_NINE)
 			) (then
 				(return @NODE_INT)
 		))

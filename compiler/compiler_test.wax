@@ -135,11 +135,11 @@
 
 (func main (result int)
     ; (let prog str "(func main (param i int)(result int)(return 44))")
-	(let prog str (call prog_helloworld))
+	; (let prog str (call prog_helloworld))
     ; (let prog str (call prog_fib))
 	; (let prog str (call prog_nqueens))
 	; (let prog str (call prog_hilbert))
-	; (let prog str (call prog_turing))
+	(let prog str (call prog_turing))
 
 	(let tokens (arr str) (call token_parse prog))
 	; (call token_write_to_output tokens)

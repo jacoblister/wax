@@ -177,6 +177,20 @@
 				(remove (get node child) 0 1)
 			))
 		))
+		(if (= (get node value) "slice") (then
+			(set block_start "slice")
+			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
+			(<< block_start ".slice(")
+			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
+			(<< block_start ",(")
+			(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
+			(<< block_start " + ")
+			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
+			(set block_end "))")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
 		(if (= (get node value) "get") (then
 			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(set block_end "")
@@ -201,8 +215,8 @@
 		(if (= (get node value) "set") (then
 			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(set block_end "")
-			(let child_last_index int (- (# (get node child)) 1))
-			(for i 1 (< i child_last_index) 1 (do
+			(let n int (- (# (get node child)) 1))
+			(for i 1 (< i n) 1 (do
 				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
@@ -217,7 +231,7 @@
 				)
 			))
 			(<< block_end " = ")
-			(<< block_end (call node_to_js (+ depth 1) (get node child child_last_index)))
+			(<< block_end (call node_to_js (+ depth 1) (get node child n)))
 
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)

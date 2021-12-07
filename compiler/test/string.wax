@@ -1,5 +1,3 @@
-(insert lines 0 "\"N=\" ))(<< o (cast @N str ))(<< o \" solution #\" )(<< o (cast s str ))(<< o \"\\n\" )(for y 0 (< y\n")
-
 (func string_comment_test
   (let comment str "; line comment")
   (print comment)
@@ -33,6 +31,11 @@
     (print (= c @CHAR_PAREN_OPEN))
 )
 
+(func string_slice_test
+    (let string str "@value")
+    (print (slice string 1 (- (# string) 1)))
+)
+
 (func string_int_shift_operator_test
   (let non_string_op int (<< 1 8))
   (print non_string_op)
@@ -43,6 +46,7 @@
   (call string_comment_test)
   (call string_quote_test)
   (call string_char_test)
+  (call string_slice_test)
   (call string_int_shift_operator_test)
   (return 0)
 )
