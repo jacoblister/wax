@@ -1,47 +1,59 @@
 ; ---------------------------------------------------------------------------- 
 ; - Tokenizer -
 ; ---------------------------------------------------------------------------- 
+(@define TOKEN_CHAR_TAB 9)
+(@define TOKEN_CHAR_NL 10)
+(@define TOKEN_CHAR_SPACE 32)
+(@define TOKEN_CHAR_DOUBLE_QUOTE 34)
+(@define TOKEN_CHAR_SINGLE_QUOTE 39)
+(@define TOKEN_CHAR_PAREN_OPEN 40)
+(@define TOKEN_CHAR_PAREN_CLOSE 41)
+(@define TOKEN_CHAR_SEMICOLON 59)
+(@define TOKEN_CHAR_BACKSLASH 92)
 
-(@define CHAR_TAB 9)
-(@define CHAR_NL 10)
-(@define CHAR_SPACE 32)
-(@define CHAR_DOUBLE_QUOTE 34)
-(@define CHAR_SINGLE_QUOTE 39)
-(@define CHAR_PAREN_OPEN 40)
-(@define CHAR_PAREN_CLOSE 41)
-(@define CHAR_SEMICOLON 59)
-
-(func tokens_parse (param input str) (result (arr str))
+(func token_parse (param input str) (result (arr str))
 	(let token str (alloc str))
 	(let tokens (arr str) (alloc (arr str)))
 	(let in_comment int 0)
 	(let in_single_quote int 0)
 	(let in_double_quote int 0)
 	(let in_quote int 0)
+	(let in_quote_escape int 0)
 
 	(for i 0 (< i (# input)) 1 (do
-		(let c int (get input i))
+		(let c int (cast (get input i) int))
 
-		(if (= c @CHAR_SEMICOLON) (then
-			(set in_comment 1)
-		))
-		(if (= c @CHAR_NL) (then
-			(if in_comment (then
-				(set token "")
+		(if in_quote_escape (then
+			(set in_quote_escape 0)
+		) (else
+			(if (&& (! in_double_quote) (= c @TOKEN_CHAR_SINGLE_QUOTE)) (then 
+				(set in_single_quote (! in_single_quote))
 			))
-			(set in_comment 0)
-		))
-		
-		(if (&& (! in_double_quote) (= c @CHAR_SINGLE_QUOTE)) (then 
-			(set in_single_quote (! in_single_quote))
-		))
-		(if (&& (! in_single_quote) (= c @CHAR_DOUBLE_QUOTE)) (then 
-			(set in_double_quote (! in_double_quote))
-		))
-		(set in_quote (|| in_single_quote in_double_quote))
+			(if (&& (! in_single_quote) (= c @TOKEN_CHAR_DOUBLE_QUOTE)) (then 
+				(set in_double_quote (! in_double_quote))
+			))
+			(set in_quote (|| in_single_quote in_double_quote))
 
-		(let whitespace int (|| (= c @CHAR_TAB) (= c @CHAR_SPACE) (= c @CHAR_NL)))
-		(let paren int (|| (= c @CHAR_PAREN_OPEN) (= c @CHAR_PAREN_CLOSE)))
+			(if in_quote (then
+				(if (= c @TOKEN_CHAR_BACKSLASH) (then
+					(set in_quote_escape 1)
+				))
+			))
+			(if (! in_quote) (then
+				(if (= c @TOKEN_CHAR_SEMICOLON) (then
+					(set in_comment 1)
+				))
+			))
+			(if (= c @TOKEN_CHAR_NL) (then
+				(if in_comment (then
+					(set token "")
+				))
+				(set in_comment 0)
+			))
+		))
+
+		(let whitespace int (|| (= c @TOKEN_CHAR_TAB) (= c @TOKEN_CHAR_SPACE) (= c @TOKEN_CHAR_NL)))
+		(let paren int (|| (= c @TOKEN_CHAR_PAREN_OPEN) (= c @TOKEN_CHAR_PAREN_CLOSE)))
 
 		(if (&& (! in_quote) (! in_comment) (|| whitespace paren)) (then
 			(if (> (# token) 0) (then
@@ -50,13 +62,13 @@
 
 			(if paren (then
 				(set token "")
-				(<< token c)
+				(<< token (get input i))
  				(insert tokens (# tokens) token)
 			))
 
 			(set token "")
 			) (else 
-				(<< token c)
+				(<< token (get input i))
 			)
 		)
 	))
@@ -64,7 +76,16 @@
 	(return tokens)
 )
 
-(func tokens_to_string (param tokens (arr str)) (param width int) (result str)
+(func token_write_to_output (param tokens (arr str)) 
+	(print "count:")
+	(print (# tokens))
+	(print "")
+	(for i 0 (< i (# tokens)) 1 (do
+		(print (get tokens i))
+	))
+)
+
+(func token_to_string (param tokens (arr str)) (param width int) (result str)
 	(let s str (alloc str ""))
 	(let line str (alloc str ""))
 	(for i 0 (< i (# tokens)) 1 (do
@@ -134,25 +155,32 @@
 	(return node_new)
 )
 
+(@define NODE_CHAR_DOUBLE_QUOTE 34)
+(@define NODE_CHAR_SINGLE_QUOTE 39)
+(@define NODE_CHAR_ZERO 48)
+(@define NODE_CHAR_NINE 78)
+(@define NODE_CHAR_AT 64)
+
 (func node_type_from_token (param token str) (result int)
 	(if (> (# token) 0) (then
-		(if (= (get token 0) '@') (then
-			(return @NODE_PREPROCESS)
+		(let c int (cast (get token 0) int))
+
+		(if (= c @NODE_CHAR_AT) (then
+            (return @NODE_PREPROCESS)
 		))
-		(if (= (get token 0) '\'') (then
+		(if (= c @NODE_CHAR_SINGLE_QUOTE) (then
 			(return @NODE_CHAR)
 		))
-		(if (= (get token 0) '\"') (then
+		(if (= c @NODE_CHAR_DOUBLE_QUOTE) (then
 			(return @NODE_STR_QUOTE)
 		))
 		(if (&&
-			(>= (get token 0) '0')
-			(<= (get token 0) '9')
+			(>= c @NODE_CHAR_ZERO)
+			(<= c @NODE_CHAR_NINE)
 			) (then
 				(return @NODE_INT)
 		))
 	))
-
 	(return @NODE_STR)
 )
 
@@ -237,64 +265,6 @@
 )
 
 ; ----------------------------------------------------------------------------
-; - WAX language target -
-; ----------------------------------------------------------------------------
-
-(func node_to_wax (param depth int) (param node (struct node)) (result str)
-	(let s str (alloc str ""))
-	
-	(if (= (get node type) @NODE_ROOT) (then
-		(for i 0 (< i (# (get node child))) 1 (do
-			(let child str (call node_to_wax 0 (get node child i)))
-			(<< s child)
-			(<< s "\n")
-		))
-	))
-
-	(if (= (get node type) @NODE_EXPR) (then
-		(<< s "(")
-		(<< s (get node value))
-		(for i 0 (< i (# (get node child))) 1 (do
-			(let node_child (struct node) (get node child i))
-			(let indent_needed int (call node_indent_needed node node_child))
-			(set indent_needed (|| indent_needed (= (get node value) "&&") (= (get node value) "||")))
-			(let indent_depth int (? indent_needed depth (- depth 1)))
-			(let indent str "  ")
-
-			(if indent_needed (then
-				(<< s "\n")
-				(for i 0 (<= i indent_depth) 1 (do
-					(<< s indent)
-				))
-			) (else 
-				(<< s " ")
-			))
-
-			(let child str (call node_to_wax (+ indent_depth 1) node_child))
-			(<< s child)
-
-			(if (&& 
-				indent_needed
-				(= i (- (# (get node child)) 1)) ; is last child
-				) (then
-				(<< s "\n")
-				(for i 0 (< i indent_depth) 1 (do
-					(<< s indent)
-				))
-			))
-
-		))
-		(<< s ")")
-	))
-
-	(if (<> (get node type) @NODE_EXPR) (then
-		(<< s (get node value))
-	))
-
-	(return s)
-)
-
-; ----------------------------------------------------------------------------
 ; - JavaScript language target -
 ; ----------------------------------------------------------------------------
 
@@ -308,13 +278,13 @@
 			(<< s "\n")
 		))
 		
-		(<< s "\n\n")
 		(<< s "main()\n")
 	))
 
 	(if (|| 
 		(= (get node value) "+") 
-		(= (get node value) "||") 
+		(= (get node value) "&&")
+		(= (get node value) "||")
 		) (then 
 			(set node (call node_expand node))
 	))
@@ -390,7 +360,8 @@
 			(set block_start "let ")
 			(set block_end "")
 			(remove (get node child) 1 1)
-			(if (= (# (get node child)) 2) (then
+            
+            (if (= (# (get node child)) 2) (then
 				(insert (get node child) 1 (call node_new @NODE_STR "="))
 			))
 		))
@@ -398,30 +369,38 @@
 			(set block_start "")
 			(set block_end "")
 			
-			(if (>= (# (get node child)) 2) (then
-				(set block_start (call node_to_js (+ depth 1) (get node child 1)))
-			) (else
-				(let child (struct node) (get node child 0))
-				(if (= (get child type) @NODE_EXPR) (then
-					(if (|| 
-						(= (get node child 0 value) "arr")
-						(= (get node child 0 value) "vec"))
-						(then
-							(set block_start "[]")
-						)
+			(let child (struct node) (get node child 0))
+			(if (= (get child type) @NODE_EXPR) (then
+				(if (|| 
+					(= (get node child 0 value) "arr")
+					(= (get node child 0 value) "vec"))
+					(then
+						(set block_start "[")
+						(for i 1 (< i (# (get node child))) 1 (do
+							(<< block_start (call node_to_js (+ depth 1) (get node child i)))
+							(if (< i (- (# (get node child)) 1 )) (then
+								(<< block_start ",")
+							))
+						))
+						(<< block_start "]")
 					)
-					(if (||
-						(= (get node child 0 value) "map")
-						(= (get node child 0 value) "struct"))
-						(then
-							(set block_start "{}")
-						)
+				)
+				(if (||
+					(= (get node child 0 value) "map")
+					(= (get node child 0 value) "struct"))
+					(then
+						(set block_start "{}")
 					)
-				))
-				(if (= (get child type) @NODE_STR) (then
+				)
+			))
+			(if (= (get child type) @NODE_STR) (then
+				(if (>= (# (get node child)) 2) (then
+					(set block_start (call node_to_js (+ depth 1) (get node child 1)))
+				) (else
 					(set block_start "\"\"")
 				))
 			))
+
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))
@@ -453,7 +432,7 @@
 			))
 		))
 		(if (= (get node value) "remove") (then
-			(if (= (get node child 1 type) @NODE_INT) (then
+			(if (<> (get node child 1 type) @NODE_STR_QUOTE) (then
 				(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start ".splice(")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
@@ -468,6 +447,20 @@
 				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
 				(set block_end "]")
 			))
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
+		(if (= (get node value) "slice") (then
+			(set block_start "slice")
+			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
+			(<< block_start ".slice(")
+			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
+			(<< block_start ",(")
+			(<< block_start (call node_to_js (+ depth 1) (get node child 2)))
+			(<< block_start " + ")
+			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
+			(set block_end "))")
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))
@@ -496,8 +489,8 @@
 		(if (= (get node value) "set") (then
 			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(set block_end "")
-			(let child_last_index int (- (# (get node child)) 1))
-			(for i 1 (< i child_last_index) 1 (do
+			(let n int (- (# (get node child)) 1))
+			(for i 1 (< i n) 1 (do
 				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
@@ -512,21 +505,23 @@
 				)
 			))
 			(<< block_end " = ")
-			(<< block_end (call node_to_js (+ depth 1) (get node child child_last_index)))
+			(<< block_end (call node_to_js (+ depth 1) (get node child n)))
 
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))
 		))
 		(if (= (get node value) "cast") (then
-			(set block_start "\"\"+")
-			(set block_end (call node_to_js (+ depth 1) (get node child 0)))
+			(if (= (get node child 1 value) "str") (then
+				(set block_start "\"\"+")
+				(set block_end (call node_to_js (+ depth 1) (get node child 0)))
+			))
+			(if (= (get node child 1 value) "int") (then
+				(set block_start (call node_to_js (+ depth 1) (get node child 0)))
+				(set block_end ".charCodeAt(0)")
+			))
 			(remove (get node child) 0 1)
 			(remove (get node child) 0 1)
-		))
-		(if (= (get node value) "if") (then
-			(set block_start "if ")
-			(set block_end "")
 		))
 		(if (= (get node value) "then") (then
 			(set block_start "{")
@@ -538,7 +533,7 @@
 		))
 		(if (= (get node value) "for") (then
 			(if (= (# (get node child)) 5) (then 
-				(set block_start "for (")
+				(set block_start "for (let ")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 				(<< block_start " = ")
 				(<< block_start (call node_to_js (+ depth 1) (get node child 1)))
@@ -564,16 +559,21 @@
 				(set block_end "")
 			))
 		))
-		(if (= (get node value) "while") (then
-			(set block_start "while ")
+		(if (||
+            (= (get node value) "if") 
+            (= (get node value) "while") 
+            ) (then
+			(set block_start (get node value))
+			(<< block_start " ")
 			(let block_simple int (<> (get node child 0 type) @NODE_EXPR))
 			(if block_simple (then
 				(<< block_start "(")
 			))
 			(<< block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(if block_simple (then
-				(<< block_start ") ")
+				(<< block_start ")")
 			))
+			(<< block_start " ")
 			(set block_end "")
 			(remove (get node child) 0 1)			
 		))
@@ -623,14 +623,18 @@
 				(set block_start "(")
 				(set block_end ")")
 				
+				(if (= (get node value) "=") (then
+					(set node value "==")
+				))
+				(if (= (get node value) "<>") (then
+					(set node value "!=")
+				))
+
 				(if (&& 
 					(= (get node value) "<<") 
 					(= (get node child 0 type) @NODE_STR) 
 					) (then
 					(set node value "+=")
-				))
-				(if (= (get node value) "=") (then
-					(set node value "==")
 				))
 				(insert (get node child) 1 (call node_new @NODE_STR (get node value)))
 		))
@@ -668,21 +672,6 @@
 					(<< s ";")
 				)
 			)
-			; (if (&& (||
-			; 		(= (get node value) "func")
-			; 		(= (get node value) "do")
-			; 		(= (get node value) "then")
-			; 		(= (get node value) "else"))
-			; 		(|| 
-			; 		(= (get node_child value) "let")
-			; 		(= (get node_child value) "get")
-			; 		(= (get node_child value) "set")
-			; 		(= (get node_child value) "call")
-			; 		)
-			; 	) (then
-			; 		(<< s ";")
-			; 	)
-			; )
 
 			(if (&& 
 				indent_needed
@@ -710,138 +699,10 @@
 	(return s)
 )
 
-; ----------------------------------------------------------------------------
-; - C language target -
-; ----------------------------------------------------------------------------
-
-(func node_to_c (param depth int) (param node (struct node)) (result str)
-	(return "node_to_c not implemented")
-)
-
-; ----------------------------------------------------------------------------
-; - Example Programs and main function -
-; ----------------------------------------------------------------------------
-
 (func prog_helloworld (result str)
 	(let lines (arr str) (alloc (arr str)
 		"(func main (result int)"
 		"  (print \"Hello World!\")"
-		"  (return 0)"
-		")"
-	))
-
-	(let prog str (alloc str ""))
-	(for i 0 (< i (# lines)) 1 (do
-		(<< prog (get lines i))
-	))
-
-	(return prog)
-)
-
-(func prog_fib (result str)
-	(let lines (arr str) (alloc (arr str)
-		";; Simple recursive function to compute\n"
-		";; Fibonacci numbers\n"
-		"(func fib (param i int) (result int)"
-		"	(if (<= i 1) (then\n"
-		"		(return i)"
-		"	))"
-		"	(return (+\n"
-		"		(call fib (- i 1))\n"
-		"		(call fib (- i 2))\n"
-		"	))\n"
-		")"
-		"\n"
-		"(func main (result int)\n"
-		"	(let x int (call fib 9))\n"
-		"	(print x)\n"
-		"	(return 0)\n"
-		")\n"
-	))
-
-	(let prog str (alloc str ""))
-	(for i 0 (< i (# lines)) 1 (do
-		(<< prog (get lines i))
-	))
-
-	(return prog)
-)
-
-(func prog_strings (result str)
-	(let lines (arr str) (alloc (arr str)
-		"(func main (result int)"
-		"  (let str_noalloc str)"
-		"  (let str_alloc str (alloc str))"
-		"  (let str_alloc_init str (alloc str \"init\"))"
-		"  (let buf (alloc str) \"init\")"
-		"  (<< buf ':')"
-		"  (<< buf \"append\")"
-		"  (print buf)"
-		"  (let double_quote str \"quote double contains 'quote single' string\")"
-		"  (print double_quote)"
-		"  (let double_quote_apostrophe str \"quote double contains apostrophe's string\")"
-		"  (print double_quote_apostrophe)"
-		"  (let single_quote str 'quote single contains \"quote double\" string')"
-		"  (print single_quote)"
-		"  (let non_string_op int (<< 1 8))"
-		"  (print non_string_op)"
-		"  (return 0)"
-		")"
-	))
-
-	(let prog str (alloc str ""))
-	(for i 0 (< i (# lines)) 1 (do
-		(<< prog (get lines i))
-	))
-
-	(return prog)
-)
-
-(func prog_arrvec (result str)
-	(let lines (arr str) (alloc (arr str)
-		"(func main (result int)"
-		"  (let things (arr float) (alloc (arr float)))"
-		"  (insert things 0 4.0)"
-		"  (insert things 0 3.0)"
-		"  (insert things 0 3.1)"
- 		"  (insert things 0 3.2)"
-		"  (insert things 0 1.0)"
-		"  (insert things 1 2.0)"
-		"  (remove things 2 2)"
-		"  (for i 0 (< i (# things)) 1 (do"
-		"    (print (get things i))"
-		"  ))"
-		"  (return 0)"
-		")"
-	))
-
-	(let prog str (alloc str ""))
-	(for i 0 (< i (# lines)) 1 (do
-		(<< prog (get lines i))
-	))
-
-	(return prog)
-)
-
-(func prog_structmap (result str)
-	(let lines (arr str) (alloc (arr str)
-		"(func main (result int)"
-		"  (struct point((let posx int)(let posy int))"
-		"  (let s (struct point) (alloc (struct point)))"
-		"  (set s posx 20)"
-		; "  (set s x 20)" - will fail
-		"  (print (get s posx))"
-		"  (let m (map str int) (alloc (map str int))) "
-		"  (set m \"xyz\" 999)"
-		"  (print (get m \"xyz\"))"
-		"  (remove m \"xyz\")"
-		"  (print (get m \"xyz\"))"
-		"  (set m \"abc\" 123)"
-		"  (set m \"def\" 345)"
-		"  (for k v m (do"
-		"    (print k)"
-		"    (print v)"
-	    "  ))"
 		"  (return 0)"
 		")"
 	))
@@ -944,30 +805,194 @@
 	(return prog)
 )
 
-(extern prog_readfile (param filename str) (result str))
-(asm "declare var require: any;")
-(asm "function prog_readfile(filename) {")
-(asm "  let fs=require('fs');")
-(asm "  return fs.readFileSync(filename).toString();")
-(asm "}")
+(func prog_compiler (result str)
+	(let lines (arr str) (alloc (arr str)
+        "(@define TOKEN_CHAR_TAB 9 )(@define TOKEN_CHAR_NL 10 )(@define TOKEN_CHAR_SPACE 32 )(@define TOKEN_CHAR_DOUBLE_QUOTE\n"
+        "34 )(@define TOKEN_CHAR_SINGLE_QUOTE 39 )(@define TOKEN_CHAR_PAREN_OPEN 40 )(@define TOKEN_CHAR_PAREN_CLOSE\n"
+        "41 )(@define TOKEN_CHAR_SEMICOLON 59 )(@define TOKEN_CHAR_BACKSLASH 92 )(func token_parse (param input\n"
+        "str )(result (arr str ))(let token str (alloc str ))(let tokens (arr str )(alloc (arr str )))(let in_comment\n"
+        "int 0 )(let in_single_quote int 0 )(let in_double_quote int 0 )(let in_quote int 0 )(let in_quote_escape\n"
+        "int 0 )(for i 0 (< i (# input ))1 (do (let c int (cast (get input i )int ))(if in_quote_escape (then (\n"
+        "set in_quote_escape 0 ))(else (if (&& (! in_double_quote )(= c @TOKEN_CHAR_SINGLE_QUOTE ))(then (set in_single_quote\n"
+        "(! in_single_quote ))))(if (&& (! in_single_quote )(= c @TOKEN_CHAR_DOUBLE_QUOTE ))(then (set in_double_quote\n"
+        "(! in_double_quote ))))(set in_quote (|| in_single_quote in_double_quote ))(if in_quote (then (if (= c\n"
+        "@TOKEN_CHAR_BACKSLASH )(then (set in_quote_escape 1 )))))(if (! in_quote )(then (if (= c @TOKEN_CHAR_SEMICOLON\n"
+        ")(then (set in_comment 1 )))))(if (= c @TOKEN_CHAR_NL )(then (if in_comment (then (set token \"\" )))\n"
+        "(set in_comment 0 )))))(let whitespace int (|| (= c @TOKEN_CHAR_TAB )(= c @TOKEN_CHAR_SPACE )(= c @TOKEN_CHAR_NL\n"
+        ")))(let paren int (|| (= c @TOKEN_CHAR_PAREN_OPEN )(= c @TOKEN_CHAR_PAREN_CLOSE )))(if (&& (! in_quote\n"
+        ")(! in_comment )(|| whitespace paren ))(then (if (> (# token )0 )(then (insert tokens (# tokens )token\n"
+        ")))(if paren (then (set token \"\" )(<< token (get input i ))(insert tokens (# tokens )token )))(set token\n"
+        "\"\" ))(else (<< token (get input i ))))))(return tokens ))(func token_write_to_output (param tokens (\n"
+        "arr str ))(print \"count:\" )(print (# tokens ))(print \"\" )(for i 0 (< i (# tokens ))1 (do (print (\n"
+        "get tokens i )))))(func token_to_string (param tokens (arr str ))(param width int )(result str )(let s\n"
+        "str (alloc str \"\" ))(let line str (alloc str \"\" ))(for i 0 (< i (# tokens ))1 (do (let token str \"\"\n"
+        ")(for j 0 (< j (# (get tokens i )))1 (do (let c int (get tokens i j ))(let encoded str \"\" )(<< encoded\n"
+        "c )(if (= c '\\\"' )(then (set encoded \"\\\\\\\"\" )))(if (= c '\\\\' )(then (set encoded \"\" )(<< encoded\n"
+        "'\\\\' )(<< encoded '\\\\' )))(<< token encoded )))(<< line token )(if (> (# line )width )(then (<< s\n"
+        "\"\\\"\" )(<< s line )(<< s \"\\\\n\\\"\\n\" )(set line \"\" ))(else (if (&& (<> token \"(\" )(<> token\n"
+        "\")\" ))(then (<< line \" \" )))))))(<< s \"\\\"\" )(<< s line )(<< s \"\\\\n\\\"\\n\" )(return s ))(\n"
+        "@define NODE_ROOT 0 )(@define NODE_EXPR 1 )(@define NODE_PREPROCESS 2 )(@define NODE_CHAR 3 )(@define\n"
+        "NODE_STR 4 )(@define NODE_STR_QUOTE 5 )(@define NODE_INT 6 )(@define NODE_FLOAT 7 )(struct node (let type\n"
+        "int )(let value str )(let child (arr (struct node ))))(func node_new (param type int )(param value str\n"
+        ")(result (struct node ))(let node_new (struct node )(alloc (struct node )))(set node_new type type )(\n"
+        "set node_new value value )(set node_new child (alloc (arr (struct node ))))(return node_new ))(@define\n"
+        "NODE_CHAR_DOUBLE_QUOTE 34 )(@define NODE_CHAR_SINGLE_QUOTE 39 )(@define NODE_CHAR_ZERO 48 )(@define NODE_CHAR_NINE\n"
+        "78 )(@define NODE_CHAR_AT 64 )(func node_type_from_token (param token str )(result int )(if (> (# token\n"
+        ")0 )(then (let c int (cast (get token 0 )int ))(if (= c @NODE_CHAR_AT )(then (return @NODE_PREPROCESS\n"
+        ")))(if (= c @NODE_CHAR_SINGLE_QUOTE )(then (return @NODE_CHAR )))(if (= c @NODE_CHAR_DOUBLE_QUOTE )(then\n"
+        "(return @NODE_STR_QUOTE )))(if (&& (>= c @NODE_CHAR_ZERO )(<= c @NODE_CHAR_NINE ))(then (return @NODE_INT\n"
+        ")))))(return @NODE_STR ))(func node_from_tokens (param tokens (arr str ))(result (struct node ))(let stack\n"
+        "(arr (struct node ))(alloc (arr (struct node ))))(insert stack (# stack )(call node_new @NODE_ROOT \"\"\n"
+        "))(let i int 0 )(while (< i (# tokens ))(do (let token str (get tokens i ))(if (= token \"(\" )(then (\n"
+        "let node (struct node )(call node_new @NODE_EXPR (get tokens (+ i 1 ))))(let parent (struct node )(get\n"
+        "stack (- (# stack )1 )))(insert (get parent child )(# (get parent child ))node )(insert stack (# stack\n"
+        ")node )(set i (+ i 1 )))(else (if (= token \")\" )(then (remove stack (- (# stack )1 )1 ))(else (let child\n"
+        "(struct node )(call node_new (call node_type_from_token token )token ))(let node (struct node )(get stack\n"
+        "(- (# stack )1 )))(insert (get node child )(# (get node child ))child )))))(set i (+ i 1 ))))(return (\n"
+        "get stack 0 )))(func node_expand (param node_org (struct node ))(result (struct node ))(if (< (# (get\n"
+        "node_org child ))2 )(then (return node_org )))(let expanded (struct node )(call node_new @NODE_EXPR (\n"
+        "get node_org value )))(insert (get expanded child )(# (get expanded child ))(get node_org child 0 ))(\n"
+        "if (= (# (get node_org child ))2 )(then (insert (get expanded child )(# (get expanded child ))(get node_org\n"
+        "child 1 )))(else (let expanded_child (struct node )(call node_new @NODE_EXPR (get node_org value )))(\n"
+        "for i 1 (< i (# (get node_org child )))1 (do (insert (get expanded_child child )(# (get expanded_child\n"
+        "child ))(get node_org child i ))))(insert (get expanded child )(# (get expanded child ))expanded_child\n"
+        ")))(return expanded ))(func node_indent_needed (param node (struct node ))(param child (struct node )\n"
+        ")(result int )(if (<> (get child type )@NODE_EXPR )(then (return 0 )))(if (|| (= (get child value )\"param\"\n"
+        ")(= (get child value )\"result\" ))(then (return 0 )))(if (|| (= (get node value )\"func\" )(= (get node\n"
+        "value )\"do\" )(= (get node value )\"then\" )(= (get node value )\"else\" )(= (get node value )\"struct\"\n"
+        "))(then (return 1 ))))(func node_to_js (param depth int )(param node (struct node ))(result str )(let\n"
+        "s str (alloc str \"\" ))(if (= (get node type )@NODE_ROOT )(then (for i 0 (< i (# (get node child )))\n"
+        "1 (do (let child str (call node_to_js 0 (get node child i )))(<< s child )(<< s \"\\n\" )))(<< s \"main()\\n\"\n"
+        ")))(if (|| (= (get node value )\"+\" )(= (get node value )\"&&\" )(= (get node value )\"||\" ))(then (\n"
+        "set node (call node_expand node ))))(if (= (get node type )@NODE_EXPR )(then (let block_start str (alloc\n"
+        "str \"(\" ))(<< block_start (get node value ))(let block_end str (alloc str \")\" ))(let block_seperator\n"
+        "str (alloc str \" \" ))(if (= (get node value )\"@define\" )(then (set block_start \"const \" )(<< block_start\n"
+        "(get node child 0 value ))(<< block_start \" = \" )(<< block_start (get node child 1 value ))(<< block_start\n"
+        "\";\" )(set block_end \"\" )(while (> (# (get node child ))0 )(do (remove (get node child )0 1 )))))(\n"
+        "if (= (get node value )\"struct\" )(then (set block_start \"\" )(set block_end \"\" )(while (> (# (get\n"
+        "node child ))0 )(do (remove (get node child )0 1 )))))(if (= (get node value )\"func\" )(then (set block_start\n"
+        "\"function \" )(let fname_node (struct node )(get node child 0 ))(<< block_start (get fname_node value\n"
+        "))(<< block_start \"(\" )(let param_count int 0 )(let i int 0 )(while (< i (# (get node child )))(do (\n"
+        "let child_node (struct node )(get node child i ))(if (= (get child_node value )\"param\" )(then (let param_node\n"
+        "(struct node )(get child_node child 0 ))(if (> param_count 0 )(then (<< block_start \", \" )))(<< block_start\n"
+        "(get param_node value ))(set param_count (+ param_count 1 ))(remove (get node child )i 1 )(set i (- i\n"
+        "1 ))))(if (= (get child_node value )\"result\" )(then (remove (get node child )i 1 )(set i (- i 1 )))\n"
+        ")(set i (+ i 1 ))))(<< block_start \") {\" )(set block_end \"}\" )(remove (get node child )0 1 )))(if\n"
+        "(= (get node value )\"call\" )(then (let fname_node (struct node )(get node child 0 ))(set block_start\n"
+        "(get fname_node value ))(<< block_start \"(\" )(set block_end \")\" )(remove (get node child )0 1 )(set\n"
+        "block_seperator \", \" )))(if (|| (= (get node value )\"let\" )(= (get node value )\"local\" ))(then (\n"
+        "set block_start \"let \" )(set block_end \"\" )(remove (get node child )1 1 )(if (= (# (get node child\n"
+        "))2 )(then (insert (get node child )1 (call node_new @NODE_STR \"=\" ))))))(if (= (get node value )\"alloc\"\n"
+        ")(then (set block_start \"\" )(set block_end \"\" )(let child (struct node )(get node child 0 ))(if (\n"
+        "= (get child type )@NODE_EXPR )(then (if (|| (= (get node child 0 value )\"arr\" )(= (get node child 0\n"
+        "value )\"vec\" ))(then (set block_start \"[\" )(for i 1 (< i (# (get node child )))1 (do (<< block_start\n"
+        "(call node_to_js (+ depth 1 )(get node child i )))(if (< i (- (# (get node child ))1 ))(then (<< block_start\n"
+        "\",\" )))))(<< block_start \"]\" )))(if (|| (= (get node child 0 value )\"map\" )(= (get node child 0\n"
+        "value )\"struct\" ))(then (set block_start \"{}\" )))))(if (= (get child type )@NODE_STR )(then (if (\n"
+        ">= (# (get node child ))2 )(then (set block_start (call node_to_js (+ depth 1 )(get node child 1 ))))\n"
+        "(else (set block_start \"\\\"\\\"\" )))))(while (> (# (get node child ))0 )(do (remove (get node child\n"
+        ")0 1 )))))(if (= (get node value )\"free\" )(then (set block_start \"/*GC*/\" )(set block_end \"\" )(\n"
+        "remove (get node child )0 1 )))(if (= (get node value )\"vec\" )(then (set block_start \"XXX\" )(set block_end\n"
+        "\"XXXX\" )(remove (get node child )0 1 )))(if (= (get node value )\"#\" )(then (set block_start \"\" )\n"
+        "(set block_end \".length\" )))(if (= (get node value )\"insert\" )(then (set block_start (call node_to_js\n"
+        "(+ depth 1 )(get node child 0 )))(<< block_start \".splice(\" )(<< block_start (call node_to_js (+ depth\n"
+        "1 )(get node child 1 )))(<< block_start \",0,\" )(<< block_start (call node_to_js (+ depth 1 )(get node\n"
+        "child 2 )))(set block_end \")\" )(while (> (# (get node child ))0 )(do (remove (get node child )0 1 )\n"
+        "))))(if (= (get node value )\"remove\" )(then (if (<> (get node child 1 type )@NODE_STR_QUOTE )(then (\n"
+        "set block_start (call node_to_js (+ depth 1 )(get node child 0 )))(<< block_start \".splice(\" )(<< block_start\n"
+        "(call node_to_js (+ depth 1 )(get node child 1 )))(<< block_start \",\" )(<< block_start (call node_to_js\n"
+        "(+ depth 1 )(get node child 2 )))(set block_end \")\" )))(if (= (get node child 1 type )@NODE_STR_QUOTE\n"
+        ")(then (set block_start \"delete \" )(<< block_start (call node_to_js (+ depth 1 )(get node child 0 )\n"
+        "))(<< block_start \"[\" )(<< block_start (call node_to_js (+ depth 1 )(get node child 1 )))(set block_end\n"
+        "\"]\" )))(while (> (# (get node child ))0 )(do (remove (get node child )0 1 )))))(if (= (get node value\n"
+        ")\"slice\" )(then (set block_start \"slice\" )(set block_start (call node_to_js (+ depth 1 )(get node\n"
+        "child 0 )))(<< block_start \".slice(\" )(<< block_start (call node_to_js (+ depth 1 )(get node child 1\n"
+        ")))(<< block_start \",(\" )(<< block_start (call node_to_js (+ depth 1 )(get node child 2 )))(<< block_start\n"
+        "\" + \" )(<< block_start (call node_to_js (+ depth 1 )(get node child 1 )))(set block_end \"))\" )(while\n"
+        "(> (# (get node child ))0 )(do (remove (get node child )0 1 )))))(if (= (get node value )\"get\" )(then\n"
+        "(set block_start (call node_to_js (+ depth 1 )(get node child 0 )))(set block_end \"\" )(for i 1 (< i\n"
+        "(# (get node child )))1 (do (let child (struct node )(get node child i ))(if (&& (= (get child type )\n"
+        "@NODE_STR )(> (# (get child value ))1 ))(then (<< block_end \".\" )(<< block_end (call node_to_js (+ depth\n"
+        "1 )(get node child i )))(<< block_end \"\" ))(else (<< block_end \"[\" )(<< block_end (call node_to_js\n"
+        "(+ depth 1 )(get node child i )))(<< block_end \"]\" )))))(while (> (# (get node child ))0 )(do (remove\n"
+        "(get node child )0 1 )))))(if (= (get node value )\"set\" )(then (set block_start (call node_to_js (+\n"
+        "depth 1 )(get node child 0 )))(set block_end \"\" )(let n int (- (# (get node child ))1 ))(for i 1 (<\n"
+        "i n )1 (do (let child (struct node )(get node child i ))(if (&& (= (get child type )@NODE_STR )(> (# (\n"
+        "get child value ))1 ))(then (<< block_end \".\" )(<< block_end (call node_to_js (+ depth 1 )(get node\n"
+        "child i )))(<< block_end \"\" ))(else (<< block_end \"[\" )(<< block_end (call node_to_js (+ depth 1 )\n"
+        "(get node child i )))(<< block_end \"]\" )))))(<< block_end \" = \" )(<< block_end (call node_to_js (\n"
+        "+ depth 1 )(get node child n )))(while (> (# (get node child ))0 )(do (remove (get node child )0 1 ))\n"
+        ")))(if (= (get node value )\"cast\" )(then (if (= (get node child 1 value )\"str\" )(then (set block_start\n"
+        "\"\\\"\\\"+\" )(set block_end (call node_to_js (+ depth 1 )(get node child 0 )))))(if (= (get node child\n"
+        "1 value )\"int\" )(then (set block_start (call node_to_js (+ depth 1 )(get node child 0 )))(set block_end\n"
+        "\".charCodeAt(0)\" )))(remove (get node child )0 1 )(remove (get node child )0 1 )))(if (= (get node value\n"
+        ")\"then\" )(then (set block_start \"{\" )(set block_end \"}\" )))(if (= (get node value )\"else\" )(then\n"
+        "(set block_start \"else {\" )(set block_end \"}\" )))(if (= (get node value )\"for\" )(then (if (= (#\n"
+        "(get node child ))5 )(then (set block_start \"for (let \" )(<< block_start (call node_to_js (+ depth 1\n"
+        ")(get node child 0 )))(<< block_start \" = \" )(<< block_start (call node_to_js (+ depth 1 )(get node\n"
+        "child 1 )))(<< block_start \"; \" )(<< block_start (call node_to_js (+ depth 1 )(get node child 2 )))\n"
+        "(<< block_start \"; \" )(<< block_start (call node_to_js (+ depth 1 )(get node child 0 )))(<< block_start\n"
+        "\" += \" )(<< block_start (call node_to_js (+ depth 1 )(get node child 3 )))(<< block_start \") \" )(\n"
+        "remove (get node child )0 4 )(set block_end \"\" )))(if (= (# (get node child ))4 )(then (set block_start\n"
+        "\"for (const [\" )(<< block_start (call node_to_js (+ depth 1 )(get node child 0 )))(<< block_start \",\"\n"
+        ")(<< block_start (call node_to_js (+ depth 1 )(get node child 1 )))(<< block_start \"] of Object.entries(\"\n"
+        ")(<< block_start (call node_to_js (+ depth 1 )(get node child 2 )))(<< block_start \"))\" )(remove (get\n"
+        "node child )0 3 )(set block_end \"\" )))))(if (|| (= (get node value )\"if\" )(= (get node value )\"while\"\n"
+        "))(then (set block_start (get node value ))(<< block_start \" \" )(let block_simple int (<> (get node\n"
+        "child 0 type )@NODE_EXPR ))(if block_simple (then (<< block_start \"(\" )))(<< block_start (call node_to_js\n"
+        "(+ depth 1 )(get node child 0 )))(if block_simple (then (<< block_start \")\" )))(<< block_start \" \"\n"
+        ")(set block_end \"\" )(remove (get node child )0 1 )))(if (= (get node value )\"do\" )(then (set block_start\n"
+        "\"{\" )(set block_end \"}\" )))(if (= (get node value )\"break\" )(then (set block_start \"break\" )(\n"
+        "set block_end \"\" )))(if (= (get node value )\"?\" )(then (set block_start (call node_to_js (+ depth\n"
+        "1 )(get node child 0 )))(<< block_start \" ? \" )(<< block_start (call node_to_js (+ depth 1 )(get node\n"
+        "child 1 )))(<< block_start \" : \" )(<< block_start (call node_to_js (+ depth 1 )(get node child 2 ))\n"
+        ")(set block_end \"\" )(while (> (# (get node child ))0 )(do (remove (get node child )0 1 )))))(if (= (\n"
+        "get node value )\"print\" )(then (set block_start \"console.log(\" )))(if (|| (= (get node value )\">>\"\n"
+        ")(= (get node value )\"<<\" )(= (get node value )\"=\" )(= (get node value )\"&&\" )(= (get node value\n"
+        ")\"||\" )(= (get node value )\">=\" )(= (get node value )\"<=\" )(= (get node value )\"<>\" )(= (get node\n"
+        "value )\"+\" )(= (get node value )\"-\" )(= (get node value )\"*\" )(= (get node value )\"/\" )(= (get\n"
+        "node value )\"^\" )(= (get node value )\"%\" )(= (get node value )\"&\" )(= (get node value )\"|\" )(\n"
+        "= (get node value )\"~\" )(= (get node value )\"<\" )(= (get node value )\">\" ))(then (set block_start\n"
+        "\"(\" )(set block_end \")\" )(if (= (get node value )\"=\" )(then (set node value \"==\" )))(if (= (get\n"
+        "node value )\"<>\" )(then (set node value \"!=\" )))(if (&& (= (get node value )\"<<\" )(= (get node child\n"
+        "0 type )@NODE_STR ))(then (set node value \"+=\" )))(insert (get node child )1 (call node_new @NODE_STR\n"
+        "(get node value )))))(if (= (get node value )\"return\" )(then (set block_start \"return(\" )(set block_end\n"
+        "\")\" )))(<< s block_start )(for i 0 (< i (# (get node child )))1 (do (let node_child (struct node )(\n"
+        "get node child i ))(let indent_needed int (call node_indent_needed node node_child ))(let indent_depth\n"
+        "int (? indent_needed depth (- depth 1 )))(let indent str \"  \" )(if indent_needed (then (<< s \"\\n\"\n"
+        ")(for i 0 (<= i indent_depth )1 (do (<< s indent ))))(else (if (> i 0 )(then (<< s block_seperator ))\n"
+        ")))(let child str (call node_to_js (+ indent_depth 1 )node_child ))(<< s child )(if (|| (= (get node value\n"
+        ")\"func\" )(= (get node value )\"do\" )(= (get node value )\"then\" )(= (get node value )\"else\" ))(\n"
+        "then (<< s \";\" )))(if (&& indent_needed (= i (- (# (get node child ))1 )))(then (<< s \"\\n\" )(for\n"
+        "i 0 (< i indent_depth )1 (do (<< s indent )))))))(<< s block_end )))(if (<> (get node type )@NODE_EXPR\n"
+        ")(then (let value str (get node value ))(if (= (get node type )@NODE_PREPROCESS )(then (<< s (slice value\n"
+        "1 (- (# value )1 ))))(else (<< s value )))))(return s ))(func prog_helloworld (result str )(let lines\n"
+        "(arr str )(alloc (arr str )\"(func main (result int)\" \"  (print \\\"Hello World!\\\")\" \"  (return 0)\"\n"
+        "\")\" ))(let prog str (alloc str \"\" ))(for i 0 (< i (# lines ))1 (do (<< prog (get lines i ))))(return\n"
+        "prog ))(func main (result int )(let prog str (call prog_helloworld ))(let tokens (arr str )(call token_parse\n"
+        "prog ))(let root (struct node )(call node_from_tokens tokens ))(let out str (call node_to_js 0 root )\n"
+        ")(print out )(return 0 ))\n"
+	))
+
+	(let prog str (alloc str ""))
+	(for i 0 (< i (# lines)) 1 (do
+		(<< prog (get lines i))
+	))
+
+	(return prog)
+)
 
 (func main (result int)
-	; (let prog str (call prog_helloworld))
-	; (let prog str (call prog_strings))
-	; (let prog str (call prog_arrvec))
-	; (let prog str (call prog_structmap))
-	; (let prog str (call prog_fib))
-	(let prog str (call prog_nqueens))
-	; (let prog str (call prog_hilbert))
-	; (let prog str (call prog_turing))
-    ; (let prog str (call prog_readfile "/workspaces/wax/examples/fib.wax"))
+    ; (let prog str (call prog_helloworld))
+    (let prog str (call prog_nqueens))
+    ; (let prog str (call prog_hilbert))
+    ; (let prog str (call prog_turing))
+    ; (let prog str (call prog_compiler))
 
-	(let tokens (arr str) (call tokens_parse prog))
-	; (print (call tokens_to_string tokens 100))
+	(let tokens (arr str) (call token_parse prog))
 
 	(let root (struct node) (call node_from_tokens tokens))
-   	
-	; (let out str (call node_to_wax 0 root))
+
    	(let out str (call node_to_js 0 root))
 	(print out)
 
