@@ -103,30 +103,38 @@
 			(set block_start "")
 			(set block_end "")
 			
-			(if (>= (# (get node child)) 2) (then
-				(set block_start (call node_to_js (+ depth 1) (get node child 1)))
-			) (else
-				(let child (struct node) (get node child 0))
-				(if (= (get child type) @NODE_EXPR) (then
-					(if (|| 
-						(= (get node child 0 value) "arr")
-						(= (get node child 0 value) "vec"))
-						(then
-							(set block_start "[]")
-						)
+			(let child (struct node) (get node child 0))
+			(if (= (get child type) @NODE_EXPR) (then
+				(if (|| 
+					(= (get node child 0 value) "arr")
+					(= (get node child 0 value) "vec"))
+					(then
+						(set block_start "[")
+						(for i 1 (< i (# (get node child))) 1 (do
+							(<< block_start (call node_to_js (+ depth 1) (get node child i)))
+							(if (< i (- (# (get node child)) 1 )) (then
+								(<< block_start ",")
+							))
+						))
+						(<< block_start "]")
 					)
-					(if (||
-						(= (get node child 0 value) "map")
-						(= (get node child 0 value) "struct"))
-						(then
-							(set block_start "{}")
-						)
+				)
+				(if (||
+					(= (get node child 0 value) "map")
+					(= (get node child 0 value) "struct"))
+					(then
+						(set block_start "{}")
 					)
-				))
-				(if (= (get child type) @NODE_STR) (then
+				)
+			))
+			(if (= (get child type) @NODE_STR) (then
+				(if (>= (# (get node child)) 2) (then
+					(set block_start (call node_to_js (+ depth 1) (get node child 1)))
+				) (else
 					(set block_start "\"\"")
 				))
 			))
+
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))

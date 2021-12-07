@@ -84,3 +84,45 @@
 		(print (get tokens i))
 	))
 )
+
+(func token_to_string (param tokens (arr str)) (param width int) (result str)
+	(let s str (alloc str ""))
+	(let line str (alloc str ""))
+	(for i 0 (< i (# tokens)) 1 (do
+		(let token str "")
+		(for j 0 (< j (# (get tokens i))) 1 (do
+			(let c int (get tokens i j))
+			(let encoded str "")
+			(<< encoded c)
+			(if (= c '\"') (then
+				(set encoded "\\\"")
+			))
+			(if (= c '\\') (then
+				(set encoded "")
+				(<< encoded '\\')
+				(<< encoded '\\')
+			))
+			(<< token encoded)
+		))
+
+		(<< line token)
+		(if (> (# line) width) (then
+			(<< s "\"")
+			(<< s line)
+			(<< s "\\n\"\n")
+			(set line "")
+		) (else
+			(if (&& 
+				(<> token "(") 
+				(<> token ")")
+				) (then
+				(<< line " ")
+			))
+		))
+	))
+	(<< s "\"")
+	(<< s line)
+	(<< s "\\n\"\n")
+
+	(return s)
+)

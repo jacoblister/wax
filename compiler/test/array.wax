@@ -1,6 +1,20 @@
-(func main (result int)
-  (let things (arr float) (alloc (arr float)))
-  ; (let things (arr float) (alloc (arr float) 5 6 7))
+(func alloc_test
+  (let initstr str "initstr")
+  (let allocstr str (alloc str "allocstr"))
+  (let nothings (arr float) (alloc (arr float)))
+  (let things (arr str) (alloc (arr str) "1/1" "1/2" "1/3"))
+  (print initstr)
+  (print allocstr)
+  (for i 0 (< i (# nothings)) 1 (do
+    (print (get nothings i))
+  ))
+  (for i 0 (< i (# things)) 1 (do
+    (print (get things i))
+  ))
+)
+
+(func insert_test 
+  (let things (arr float) (alloc (arr float) 5 6 7))
   (insert things 0 4.0)
   (insert things 0 3.0)
   (insert things 0 3.1)
@@ -11,5 +25,10 @@
   (for i 0 (< i (# things)) 1 (do
     (print (get things i))
   ))
+)
+
+(func main (result int)
+  (call alloc_test)
+  (call insert_test)
   (return 0)
 )

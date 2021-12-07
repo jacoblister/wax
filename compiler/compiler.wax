@@ -29,7 +29,7 @@
 	(let prog str (call readfile "compiler_test.wax"))
 
 	(let tokens (arr str) (call token_parse prog))
-	; (call token_write_to_output tokens)
+    ; (print (call token_to_string tokens 100))
 
 	(let root (struct node) (call node_from_tokens tokens))
 	(set root (call node_preprocess root))
