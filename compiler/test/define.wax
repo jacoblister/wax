@@ -1,2 +1,10 @@
 (@define N 8)
-(let val int @N)
+
+(func define_value
+    (print "N=8:")
+    (print @N)
+)
+
+(func main
+    (call define_value)
+ )

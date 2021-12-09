@@ -145,11 +145,6 @@
 
 			(remove (get node child) 0 1)
 		))
-		(if (= (get node value) "vec") (then
-			(set block_start "XXX")
-			(set block_end "XXXX")
-			(remove (get node child) 0 1)
-		))
 		(if (= (get node value) "#") (then
 			(set block_start "")
 			(set block_end ".length")

@@ -1,4 +1,3 @@
-
 (func main
   (let s str "\"a = 1\" next")
   (print s)

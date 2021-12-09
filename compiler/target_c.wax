@@ -6,8 +6,9 @@
 	(let s str (alloc str ""))
 	
 	(if (= (get node type) @NODE_ROOT) (then
-        (<< s "#include <stdio.h>\n\n")
-        (<< s "#include <stdlib.h>\n\n")
+        (<< s "#include <stdio.h>\n")
+        (<< s "#include <stdlib.h>\n")
+        (<< s "\n")
         (<< s "void print(int n) { printf(\"%d\\n\", n); }\n" )
         (<< s "void print(char *str) { printf(\"%s\\n\", str); }\n" )
         (<< s "\n\n")
@@ -33,18 +34,17 @@
 		(let block_end str (alloc str ")"))
 		(let block_seperator str (alloc str " "))
 
-		; (if (= (get node value) "@define") (then
-		; 	(set block_start "const ")
-		; 	(<< block_start (get node child 0 value))
-		; 	(<< block_start " = ")
-		; 	(<< block_start (get node child 1 value))
-		; 	(<< block_start ";")
+		(if (= (get node value) "@define") (then
+			(set block_start "#define ")
+			(<< block_start (get node child 0 value))
+			(<< block_start " ")
+			(<< block_start (get node child 1 value))
 
-		; 	(set block_end "")
-		; 	(while (> (# (get node child)) 0) (do
-		; 		(remove (get node child) 0 1)
-		; 	))
-		; ))
+			(set block_end "")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
 		; (if (= (get node value) "struct") (then
 		; 	(set block_start "")
 		; 	(set block_end "")
@@ -55,39 +55,40 @@
 		(if (= (get node value) "func") (then
 			(set block_start "")
 
+			(let return_type str "void")
+			(let params str "void")
 			(let i int 0)
 			(while (< i (# (get node child))) (do
 				(let child_node (struct node) (get node child i))
-				(if (= (get child_node value) "result") (then
-        			(<< block_start (get child_node child 0 value))
-        			(<< block_start " ")
-					(remove (get node child) i 1)	
-					(set i (- i 1))
-				))
-				(set i (+ i 1))
-			))
-
-			(let fname_node (struct node) (get node child 0))
-			(<< block_start (get fname_node value))
-			(<< block_start	"(")
-
-			(let param_count int 0)
-			(set i 0)
-			(while (< i (# (get node child))) (do
-				(let child_node (struct node) (get node child i))
 				(if (= (get child_node value) "param") (then
-					(if (> param_count 0) (then
-						(<< block_start ", ")
+					(if (= params "void") (then
+						(set params "")
+					) (else 
+						(<< params ", ")
 					))
-					(<< block_start (get (get child_node child 1) value))
-					(<< block_start " ")
-					(<< block_start (get (get child_node child 0) value))
-					(set param_count (+ param_count 1))
+					(<< params (get (get child_node child 1) value))
+					(<< params " ")
+					(<< params (get (get child_node child 0) value))
+					(remove (get node child) i 1)	
+					(set i (- i 1))
+				))
+				(if (= (get child_node value) "result") (then
+        			(set return_type (get child_node child 0 value))
 					(remove (get node child) i 1)	
 					(set i (- i 1))
 				))
 				(set i (+ i 1))
 			))
+
+			(let func_name str (get node child 0 value))
+			(if (= func_name "main") (then
+				(set return_type "int")
+			))
+			(<< block_start return_type)
+			(<< block_start " ")
+			(<< block_start func_name)
+			(<< block_start	"(")
+			(<< block_start params)
 			
 			(<< block_start ") {")
 			(set block_end "}")
@@ -187,15 +188,10 @@
 
 		; 	(remove (get node child) 0 1)
 		; ))
-		; (if (= (get node value) "vec") (then
-		; 	(set block_start "XXX")
-		; 	(set block_end "XXXX")
-		; 	(remove (get node child) 0 1)
-		; ))
-		; (if (= (get node value) "#") (then
-		; 	(set block_start "")
-		; 	(set block_end ".length")
-		; ))
+		(if (= (get node value) "#") (then
+			(set block_start "")
+			(set block_end ".length")
+		))
 		; (if (= (get node value) "insert") (then
 		; 	(set block_start (call node_to_c (+ depth 1) (get node child 0)))
 		; 	(<< block_start ".splice(")
@@ -481,10 +477,17 @@
 	(if (<> (get node type) @NODE_EXPR) (then
 		(let value str (get node value))
 		(if (= (get node type) @NODE_PREPROCESS) (then
-			(<< s (slice value 1 (- (# value) 1)))	
-		) (else 
-			(<< s value)
+			(set value "")
+			(for i 1 (< i (# (get node value))) 1 (do
+				(<< value (get (get node value) i))
+			))
 		))
+		(if (= (get node type) @NODE_STR_QUOTE) (then
+			(set value "(char*)")
+			(<< value (get node value))
+			(<< value "")
+		))
+		(<< s value)
 	))
 	
 	(return s)
