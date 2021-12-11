@@ -1,29 +1,30 @@
-(func func_no_body
-)
+; waxc - nothing output 
+; (func func_no_body
+; )
 
 (func func_empty 
-  (print "(func func_empty):")
+  (print "func_empty:")
 )
 
 (func func_result (result int)
-  (print "(func_result):")
+  (print "func_result:")
   (return -1)
 )
 
 (func func_param_a (param a int)
-  (print "(func_param_a):")
+  (print "func_param_a:")
   (print a)
 )
 
 (func func_param_abc (param a int) (param b int) (param c int)
-  (print "(func_param_abc):")
+  (print "func_param_abc:")
   (print a)
   (print b)
   (print c)
 )
 
 (func func_param_abc_result (param a int) (param b int) (param c int) (result int)
-  (print "(func_param_abc_result):")
+  (print "func_param_abc_result:")
   (print a)
   (print b)
   (print c)

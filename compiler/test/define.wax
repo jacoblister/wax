@@ -1,10 +1,10 @@
 (@define N 8)
 
-(func define_value
-    (print "N=8:")
+(func define_value_test
+    (print "define_value_test:")
     (print @N)
 )
 
 (func main
-    (call define_value)
+    (call define_value_test)
  )

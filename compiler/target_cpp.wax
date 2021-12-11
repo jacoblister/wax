@@ -2,19 +2,21 @@
 ; - JavaScript language target -
 ; ----------------------------------------------------------------------------
 
-(func node_to_c (param depth int) (param node (struct node)) (result str)
+(func node_to_cpp (param depth int) (param node (struct node)) (result str)
 	(let s str (alloc str ""))
 	
 	(if (= (get node type) @NODE_ROOT) (then
-        (<< s "#include <stdio.h>\n")
-        (<< s "#include <stdlib.h>\n")
+        (<< s "#include <iostream>\n")
+        (<< s "#include <string>\n")
+        ; (<< s "#include <stdio.h>\n")
+        ; (<< s "#include <stdlib.h>\n")
         (<< s "\n")
-        (<< s "void print(int n) { printf(\"%d\\n\", n); }\n" )
-        (<< s "void print(char *str) { printf(\"%s\\n\", str); }\n" )
+        ; (<< s "void print(int n) { printf(\"%d\\n\", n); }\n" )
+        ; (<< s "void print(char *str) { printf(\"%s\\n\", str); }\n" )
         (<< s "\n\n")
 
 		(for i 0 (< i (# (get node child))) 1 (do
-			(let child str (call node_to_c 0 (get node child i)))
+			(let child str (call node_to_cpp 0 (get node child i)))
 			(<< s child)
 			(<< s "\n")
 		))
@@ -66,7 +68,12 @@
 					) (else 
 						(<< params ", ")
 					))
-					(<< params (get (get child_node child 1) value))
+					(let type str (get (get child_node child 1) value))
+					(if (= type "vec") (then
+						(set type (get child_node child 1 child 1 value))
+						(<< type "*")
+					))
+					(<< params type)
 					(<< params " ")
 					(<< params (get (get child_node child 0) value))
 					(remove (get node child) i 1)	
@@ -106,17 +113,21 @@
 			(= (get node value) "let") 
 			(= (get node value) "local")) (then
 			(let type str (get node child 1 value))
-			(if (= (get node child 1 value) "arr") (then
+			(if (= type "str") (then
+				(set type "std::string")
+			))
+			(if (= type "arr") (then
 				(set type "struct {int length; int item_size; ")
 				(<< type (get node child 1 child 0 value))
 				(<< type " *data;}")
 			))
-			(if (= (get node child 1 value) "vec") (then
-				(set type "struct {int length; int item_size; ")
-				(<< type (get node child 1 child 1 value))
-				(<< type " data[")
-				(<< type (get node child 1 child 0 value))
-				(<< type "];}")
+			(if (= type "vec") (then
+				(set type (get node child 1 child 1 value))
+				(let array str (get node child 0 value))
+				(<< array "[")
+				(<< array (call node_to_cpp (+ depth 1) (get node child 1 child 0)))
+				(<< array "]")
+				(set (get node child 0) value array)
 			))
 			(set block_start type)
 			(<< block_start " ")
@@ -132,21 +143,23 @@
 			(set block_end "")
 			
 			(let child (struct node) (get node child 0))
+			(if (= (get child value) "str") (then
+				(set block_start "\"\"")
+				(if (> (# (get node child)) 1) (then
+					(set block_start (get node child 1 value))
+				))
+			))
 			(if (= (get child type) @NODE_EXPR) (then
 				(if (= (get node child 0 value) "vec")
 					(then
 						(set block_start "{")
-						(<< block_start (get node child 0 child 0 value))
-						(<< block_start ", sizeof(")
-						(<< block_start (get node child 0 child 1 value))
-						(<< block_start "), {")
 						(for i 1 (< i (# (get node child))) 1 (do
-							(<< block_start (call node_to_c (+ depth 1) (get node child i)))
+							(<< block_start (call node_to_cpp (+ depth 1) (get node child i)))
 							(if (< i (- (# (get node child)) 1 )) (then
 								(<< block_start ",")
 							))
 						))
-						(<< block_start "}}")
+						(<< block_start "}")
 					)
 				)
 				(if (= (get node child 0 value) "arr")
@@ -172,7 +185,7 @@
 			))
 			; (if (= (get child type) @NODE_STR) (then
 			; 	(if (>= (# (get node child)) 2) (then
-			; 		(set block_start (call node_to_c (+ depth 1) (get node child 1)))
+			; 		(set block_start (call node_to_cpp (+ depth 1) (get node child 1)))
 			; 	) (else
 			; 		(set block_start "\"\"")
 			; 	))
@@ -190,14 +203,14 @@
 		; ))
 		(if (= (get node value) "#") (then
 			(set block_start "")
-			(set block_end ".length")
+			(set block_end ".length()")
 		))
 		; (if (= (get node value) "insert") (then
-		; 	(set block_start (call node_to_c (+ depth 1) (get node child 0)))
+		; 	(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 		; 	(<< block_start ".splice(")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
+		; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
 		; 	(<< block_start ",0,")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 2)))
+		; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
 		; 	(set block_end ")")
 		; 	(while (> (# (get node child)) 0) (do
 		; 		(remove (get node child) 0 1)
@@ -205,51 +218,48 @@
 		; ))
 		; (if (= (get node value) "remove") (then
 		; 	(if (<> (get node child 1 type) @NODE_STR_QUOTE) (then
-		; 		(set block_start (call node_to_c (+ depth 1) (get node child 0)))
+		; 		(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 		; 		(<< block_start ".splice(")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
+		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
 		; 		(<< block_start ",")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 2)))
+		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
 		; 		(set block_end ")")
 		; 	))
 		; 	(if (= (get node child 1 type) @NODE_STR_QUOTE) (then
 		; 		(set block_start "delete ")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 0)))
+		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 		; 		(<< block_start "[")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
+		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
 		; 		(set block_end "]")
 		; 	))
 		; 	(while (> (# (get node child)) 0) (do
 		; 		(remove (get node child) 0 1)
 		; 	))
 		; ))
-		; (if (= (get node value) "slice") (then
-		; 	(set block_start "slice")
-		; 	(set block_start (call node_to_c (+ depth 1) (get node child 0)))
-		; 	(<< block_start ".slice(")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
-		; 	(<< block_start ",(")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 2)))
-		; 	(<< block_start " + ")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
-		; 	(set block_end "))")
-		; 	(while (> (# (get node child)) 0) (do
-		; 		(remove (get node child) 0 1)
-		; 	))
-		; ))
+		(if (= (get node value) "slice") (then
+			(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+			(<< block_start ".substr(")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+			(<< block_start ",")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
+			(set block_end ")")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
 		(if (= (get node value) "get") (then
-			(set block_start (call node_to_c (+ depth 1) (get node child 0)))
+			(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 			(set block_end "")
 			(for i 1 (< i (# (get node child))) 1 (do
 				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
 						(<< block_end ".")
-						(<< block_end (call node_to_c (+ depth 1) (get node child i)))
+						(<< block_end (call node_to_cpp (+ depth 1) (get node child i)))
 						(<< block_end "")
 					) (else
-						(<< block_end ".data[")
-						(<< block_end (call node_to_c (+ depth 1) (get node child i)))
+						(<< block_end "[")
+						(<< block_end (call node_to_cpp (+ depth 1) (get node child i)))
 						(<< block_end "]")
 					)
 				)
@@ -259,7 +269,7 @@
 			))
 		))
 		(if (= (get node value) "set") (then
-			(set block_start (call node_to_c (+ depth 1) (get node child 0)))
+			(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 			(set block_end "")
 			(let n int (- (# (get node child)) 1))
 			(for i 1 (< i n) 1 (do
@@ -267,34 +277,35 @@
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
 						(<< block_end ".")
-						(<< block_end (call node_to_c (+ depth 1) (get node child i)))
+						(<< block_end (call node_to_cpp (+ depth 1) (get node child i)))
 						(<< block_end "")
 					) (else 
-						(<< block_end ".data[")
-						(<< block_end (call node_to_c (+ depth 1) (get node child i)))
+						(<< block_end "[")
+						(<< block_end (call node_to_cpp (+ depth 1) (get node child i)))
 						(<< block_end "]")
 					)
 				)
 			))
 			(<< block_end " = ")
-			(<< block_end (call node_to_c (+ depth 1) (get node child n)))
+			(<< block_end (call node_to_cpp (+ depth 1) (get node child n)))
 
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))
 		))
-		; (if (= (get node value) "cast") (then
-		; 	(if (= (get node child 1 value) "str") (then
-		; 		(set block_start "\"\"+")
-		; 		(set block_end (call node_to_c (+ depth 1) (get node child 0)))
-		; 	))
-		; 	(if (= (get node child 1 value) "int") (then
-		; 		(set block_start (call node_to_c (+ depth 1) (get node child 0)))
-		; 		(set block_end ".charCodeAt(0)")
-		; 	))
-		; 	(remove (get node child) 0 1)
-		; 	(remove (get node child) 0 1)
-		; ))
+		(if (= (get node value) "cast") (then
+			(if (= (get node child 1 value) "str") (then
+				(set block_start "std::to_string(")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 0))) 
+				(set block_end ")")
+			))
+			(if (= (get node child 1 value) "int") (then
+				(set block_start "(int)")
+				(set block_end (call node_to_cpp (+ depth 1) (get node child 0)))
+			))
+			(remove (get node child) 0 1)
+			(remove (get node child) 0 1)
+		))
 		(if (= (get node value) "then") (then
 			(set block_start "{")
 			(set block_end "}")
@@ -303,34 +314,34 @@
 			(set block_start "else {")
 			(set block_end "}")
 		))
-		; (if (= (get node value) "for") (then
-		; 	(if (= (# (get node child)) 5) (then 
-		; 		(set block_start "for (let ")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 0)))
-		; 		(<< block_start " = ")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
-		; 		(<< block_start "; ")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 2)))
-		; 		(<< block_start "; ")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 0)))
-		; 		(<< block_start " += ")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 3)))
-		; 		(<< block_start ") ")
-		; 		(remove (get node child) 0 4)
-		; 		(set block_end "")
-		; 	))
-		; 	(if (= (# (get node child)) 4) (then 
-		; 		(set block_start "for (const [")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 0)))
-		; 		(<< block_start ",")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
-		; 		(<< block_start "] of Object.entries(")
-		; 		(<< block_start (call node_to_c (+ depth 1) (get node child 2)))
-		; 		(<< block_start "))")
-		; 		(remove (get node child) 0 3)
-		; 		(set block_end "")
-		; 	))
-		; ))
+		(if (= (get node value) "for") (then
+			(if (= (# (get node child)) 5) (then 
+				(set block_start "for (int ")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+				(<< block_start " = ")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+				(<< block_start "; ")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
+				(<< block_start "; ")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+				(<< block_start " += ")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 3)))
+				(<< block_start ") ")
+				(remove (get node child) 0 4)
+				(set block_end "")
+			))
+			; (if (= (# (get node child)) 4) (then 
+			; 	(set block_start "for (const [")
+			; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+			; 	(<< block_start ",")
+			; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+			; 	(<< block_start "] of Object.entries(")
+			; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
+			; 	(<< block_start "))")
+			; 	(remove (get node child) 0 3)
+			; 	(set block_end "")
+			; ))
+		))
 		(if (||
             (= (get node value) "if") 
             (= (get node value) "while") 
@@ -341,7 +352,7 @@
 			(if block_simple (then
 				(<< block_start "(")
 			))
-			(<< block_start (call node_to_c (+ depth 1) (get node child 0)))
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 			(if block_simple (then
 				(<< block_start ")")
 			))
@@ -349,27 +360,28 @@
 			(set block_end "")
 			(remove (get node child) 0 1)			
 		))
-		; (if (= (get node value) "do") (then
-		; 	(set block_start "{")
-		; 	(set block_end "}")
-		; ))
+		(if (= (get node value) "do") (then
+			(set block_start "{")
+			(set block_end "}")
+		))
 		; (if (= (get node value) "break") (then
 		; 	(set block_start "break")
 		; 	(set block_end "")
 		; ))
-		; (if (= (get node value) "?") (then
-		; 	(set block_start (call node_to_c (+ depth 1) (get node child 0)))
-		; 	(<< block_start " ? ")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 1)))
-		; 	(<< block_start " : ")
-		; 	(<< block_start (call node_to_c (+ depth 1) (get node child 2)))
-		; 	(set block_end "")
-		; 	(while (> (# (get node child)) 0) (do
-		; 		(remove (get node child) 0 1)
-		; 	))
-		; ))
+		(if (= (get node value) "?") (then
+			(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+			(<< block_start " ? ")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+			(<< block_start " : ")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
+			(set block_end "")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
 		(if (= (get node value) "print") (then
-			(set block_start "print(")
+			(set block_start "std::cout << ")
+			(set block_end " << std::endl")
 		))
 		(if (|| 
 			(= (get node value) ">>")
@@ -433,7 +445,7 @@
 				))
 			))
 
-			(let child str (call node_to_c (+ indent_depth 1) node_child))
+			(let child str (call node_to_cpp (+ indent_depth 1) node_child))
 			(<< s child)
 
 			(if (||
@@ -482,11 +494,11 @@
 				(<< value (get (get node value) i))
 			))
 		))
-		(if (= (get node type) @NODE_STR_QUOTE) (then
-			(set value "(char*)")
-			(<< value (get node value))
-			(<< value "")
-		))
+		; (if (= (get node type) @NODE_STR_QUOTE) (then
+		; 	(set value "(char*)")
+		; 	(<< value (get node value))
+		; 	(<< value "")
+		; ))
 		(<< s value)
 	))
 	

@@ -181,7 +181,6 @@
 			))
 		))
 		(if (= (get node value) "slice") (then
-			(set block_start "slice")
 			(set block_start (call node_to_js (+ depth 1) (get node child 0)))
 			(<< block_start ".slice(")
 			(<< block_start (call node_to_js (+ depth 1) (get node child 1)))

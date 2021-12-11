@@ -1,0 +1,8 @@
+(func print_test
+  (print "print_test:")
+)
+
+(func main (result int)
+  (call print_test)
+  (return 0)
+)

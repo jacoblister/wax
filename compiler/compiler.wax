@@ -3,7 +3,7 @@
 (@include "node_preprocess.wax")
 (@include "target_wax.wax")
 (@include "target_js.wax")
-(@include "target_c.wax")
+(@include "target_cpp.wax")
 
 (extern readfile (param filename str) (result str))
 (asm "declare var require: any;")
@@ -16,14 +16,16 @@
 	; (let prog str "(func main)")
     ; (let prog str (call readfile "../examples/helloworld.wax"))
     ; (let prog str (call readfile "../examples/fib.wax"))
-    ; (let prog str (call readfile "../examples/nqueens.wax"))
+    (let prog str (call readfile "../examples/nqueens.wax"))
     ; (let prog str (call readfile "../examples/hilbert.wax"))
     ; (let prog str (call readfile "../examples/turing_mod.wax"))
     ; (let prog str (call readfile "test/define.wax"))
     ; (let prog str (call readfile "test/let.wax"))
     ; (let prog str (call readfile "test/str.wax"))
-    (let prog str (call readfile "test/arr.wax"))
+    ; (let prog str (call readfile "test/vec.wax"))
+    ; (let prog str (call readfile "test/arr.wax"))
     ; (let prog str (call readfile "test/func.wax"))
+    ; (let prog str (call readfile "test/print.wax"))
     ; (let prog str (call readfile "token_test.wax"))
     ; (let prog str (call readfile "node_test.wax"))
     ; (let prog str (call readfile "target_wax_test.wax"))
@@ -38,7 +40,7 @@
 
 	; (let out str (call node_to_wax 0 root))
    	; (let out str (call node_to_js 0 root))
-   	(let out str (call node_to_c 0 root))
+   	(let out str (call node_to_cpp 0 root))
 
 	(print out)
 
