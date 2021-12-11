@@ -2,17 +2,37 @@
 ; - JavaScript language target -
 ; ----------------------------------------------------------------------------
 
+(func node_to_cpp_vecarr_type (param node (struct node)) (result str)
+	(let type str "?")
+
+	(if (= (get node value) "vec") (then
+		(set type (get node child 1 value))
+		(<< type "*")
+	))
+
+	(if (= (get node value) "arr") (then
+		(set type "std::vector<")
+		(let subtype str (get node child 0 value))
+		(if (|| 
+			(= subtype "vec") 
+			(= subtype "arr") 
+			) (then
+			(set subtype (call node_to_cpp_vecarr_type(get node child 0)))
+		))
+		(<< type subtype)
+		(<< type ">")
+	))
+	(return type)
+)
+
 (func node_to_cpp (param depth int) (param node (struct node)) (result str)
 	(let s str (alloc str ""))
 	
 	(if (= (get node type) @NODE_ROOT) (then
         (<< s "#include <iostream>\n")
         (<< s "#include <string>\n")
-        ; (<< s "#include <stdio.h>\n")
-        ; (<< s "#include <stdlib.h>\n")
-        (<< s "\n")
-        ; (<< s "void print(int n) { printf(\"%d\\n\", n); }\n" )
-        ; (<< s "void print(char *str) { printf(\"%s\\n\", str); }\n" )
+        (<< s "#include <vector>\n")
+        (<< s "#include <array>\n")
         (<< s "\n\n")
 
 		(for i 0 (< i (# (get node child))) 1 (do
@@ -81,6 +101,12 @@
 				))
 				(if (= (get child_node value) "result") (then
         			(set return_type (get child_node child 0 value))
+					(if (= return_type "str") (then
+						(set return_type "std::string")
+					))
+					(if (= return_type "arr") (then
+						(set return_type (call node_to_cpp_vecarr_type (get child_node child 0)))
+					))
 					(remove (get node child) i 1)	
 					(set i (- i 1))
 				))
@@ -116,11 +142,6 @@
 			(if (= type "str") (then
 				(set type "std::string")
 			))
-			(if (= type "arr") (then
-				(set type "struct {int length; int item_size; ")
-				(<< type (get node child 1 child 0 value))
-				(<< type " *data;}")
-			))
 			(if (= type "vec") (then
 				(set type (get node child 1 child 1 value))
 				(let array str (get node child 0 value))
@@ -129,6 +150,10 @@
 				(<< array "]")
 				(set (get node child 0) value array)
 			))
+			(if (= type "arr") (then
+				(set type (call node_to_cpp_vecarr_type (get node child 1)))
+			))
+
 			(set block_start type)
 			(<< block_start " ")
 			(set block_end "")
@@ -165,14 +190,13 @@
 				(if (= (get node child 0 value) "arr")
 					(then
 						(set block_start "{")
-						(<< block_start (cast (- (# (get node child)) 1) str))
-						(<< block_start ", sizeof(")
-						(<< block_start (get node child 0 child 0 value))
-						(<< block_start "), (")
-						(<< block_start (get node child 0 child 0 value))
-						(<< block_start "*)calloc(0, sizeof(")
-						(<< block_start (cast (- (# (get node child)) 1) str))
-						(<< block_start "))}")
+						(for i 1 (< i (# (get node child))) 1 (do
+							(<< block_start (call node_to_cpp (+ depth 1) (get node child i)))
+							(if (< i (- (# (get node child)) 1 )) (then
+								(<< block_start ",")
+							))
+						))
+						(<< block_start "}")
 					)
 				)
 				; (if (||
@@ -203,39 +227,47 @@
 		; ))
 		(if (= (get node value) "#") (then
 			(set block_start "")
-			(set block_end ".length()")
+			(set block_end ".size()")
 		))
-		; (if (= (get node value) "insert") (then
-		; 	(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
-		; 	(<< block_start ".splice(")
-		; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
-		; 	(<< block_start ",0,")
-		; 	(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
-		; 	(set block_end ")")
-		; 	(while (> (# (get node child)) 0) (do
-		; 		(remove (get node child) 0 1)
-		; 	))
-		; ))
-		; (if (= (get node value) "remove") (then
-		; 	(if (<> (get node child 1 type) @NODE_STR_QUOTE) (then
-		; 		(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
-		; 		(<< block_start ".splice(")
-		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
-		; 		(<< block_start ",")
-		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
-		; 		(set block_end ")")
-		; 	))
-		; 	(if (= (get node child 1 type) @NODE_STR_QUOTE) (then
-		; 		(set block_start "delete ")
-		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
-		; 		(<< block_start "[")
-		; 		(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
-		; 		(set block_end "]")
-		; 	))
-		; 	(while (> (# (get node child)) 0) (do
-		; 		(remove (get node child) 0 1)
-		; 	))
-		; ))
+		(if (= (get node value) "insert") (then
+			(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+			(<< block_start ".insert(")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+			(<< block_start ".begin()+")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+			(<< block_start ",")
+			(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
+			(set block_end ")")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
+		(if (= (get node value) "remove") (then
+			(if (<> (get node child 1 type) @NODE_STR_QUOTE) (then
+				(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+				(<< block_start ".erase(")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+				(<< block_start ".begin()+")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+				(<< block_start ",")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+				(<< block_start ".begin()+")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+				(<< block_start "+")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 2)))
+				(set block_end ")")
+			))
+			(if (= (get node child 1 type) @NODE_STR_QUOTE) (then
+				(set block_start "delete ")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 0)))
+				(<< block_start "[")
+				(<< block_start (call node_to_cpp (+ depth 1) (get node child 1)))
+				(set block_end "]")
+			))
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
 		(if (= (get node value) "slice") (then
 			(set block_start (call node_to_cpp (+ depth 1) (get node child 0)))
 			(<< block_start ".substr(")
