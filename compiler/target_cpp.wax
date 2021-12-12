@@ -2,12 +2,33 @@
 ; - JavaScript language target -
 ; ----------------------------------------------------------------------------
 
+(func node_to_cpp_preprocess (param node (struct node)) (result str) 
+	(let value str (get node value))
+	(if (= (get node type) @NODE_PREPROCESS) (then
+		(set value "")
+		(for i 1 (< i (# (get node value))) 1 (do
+			(<< value (get (get node value) i))
+		))
+	))
+	(return value)
+)
+
 (func node_to_cpp_vecarr_type (param node (struct node)) (result str)
 	(let type str "?")
 
 	(if (= (get node value) "vec") (then
-		(set type (get node child 1 value))
-		(<< type "*")
+		(set type "std::array<")
+		(let subtype str (get node child 1 value))
+		(if (|| 
+			(= subtype "vec") 
+			(= subtype "arr") 
+			) (then
+			(set subtype (call node_to_cpp_vecarr_type(get node child 1)))
+		))
+		(<< type subtype)
+		(<< type ",")
+		(<< type (call node_to_cpp_preprocess (get node child 0)))
+		(<< type ">")
 	))
 
 	(if (= (get node value) "arr") (then
@@ -67,13 +88,13 @@
 				(remove (get node child) 0 1)
 			))
 		))
-		; (if (= (get node value) "struct") (then
-		; 	(set block_start "")
-		; 	(set block_end "")
-		; 	(while (> (# (get node child)) 0) (do
-		; 		(remove (get node child) 0 1)
-		; 	))
-		; ))
+		(if (= (get node value) "struct") (then
+			(set block_start "struct ")
+			(<< block_start (get node child 0 value))
+			(<< block_start " {")
+			(set block_end "};")
+			(remove (get node child) 0 1)
+		))
 		(if (= (get node value) "func") (then
 			(set block_start "")
 
@@ -89,9 +110,12 @@
 						(<< params ", ")
 					))
 					(let type str (get (get child_node child 1) value))
-					(if (= type "vec") (then
-						(set type (get child_node child 1 child 1 value))
-						(<< type "*")
+					(if (|| 
+						(= type "vec") 
+						(= type "arr")
+						) (then
+						(set type (call node_to_cpp_vecarr_type (get child_node child 1)))
+						(<< type "&")
 					))
 					(<< params type)
 					(<< params " ")
@@ -142,15 +166,15 @@
 			(if (= type "str") (then
 				(set type "std::string")
 			))
-			(if (= type "vec") (then
-				(set type (get node child 1 child 1 value))
-				(let array str (get node child 0 value))
-				(<< array "[")
-				(<< array (call node_to_cpp (+ depth 1) (get node child 1 child 0)))
-				(<< array "]")
-				(set (get node child 0) value array)
+			(if (= type "struct") (then
+				(set type "struct ")
+				(<< type (get node child 1 child 0 value))
+				(<< type "*")
 			))
-			(if (= type "arr") (then
+			(if (|| 
+				(= type "vec") 
+				(= type "arr")
+				) (then
 				(set type (call node_to_cpp_vecarr_type (get node child 1)))
 			))
 
@@ -199,6 +223,15 @@
 						(<< block_start "}")
 					)
 				)
+				(if (= (get node child 0 value) "struct") (then
+					(set block_start "(struct ")
+					(<< block_start (get node child 0 child 0 value))
+					(<< block_start "*)")
+					(<< block_start "malloc(sizeof(struct ")
+					(<< block_start (get node child 0 child 0 value))
+					(set block_end "))")
+				))
+
 				; (if (||
 				; 	(= (get node child 0 value) "map")
 				; 	(= (get node child 0 value) "struct"))
@@ -219,12 +252,12 @@
 				(remove (get node child) 0 1)
 			))
 		))
-		; (if (= (get node value) "free") (then
-		; 	(set block_start "/*GC*/")
-		; 	(set block_end "")
+		(if (= (get node value) "free") (then
+			(set block_start "/*GC*/")
+			(set block_end "")
 
-		; 	(remove (get node child) 0 1)
-		; ))
+			(remove (get node child) 0 1)
+		))
 		(if (= (get node value) "#") (then
 			(set block_start "")
 			(set block_end ".size()")
@@ -286,7 +319,7 @@
 				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
-						(<< block_end ".")
+						(<< block_end "->")
 						(<< block_end (call node_to_cpp (+ depth 1) (get node child i)))
 						(<< block_end "")
 					) (else
@@ -308,7 +341,7 @@
 				(let child (struct node) (get node child i))
 				(if (&& (= (get child type) @NODE_STR) (> (# (get child value)) 1))
 					(then
-						(<< block_end ".")
+						(<< block_end "->")
 						(<< block_end (call node_to_cpp (+ depth 1) (get node child i)))
 						(<< block_end "")
 					) (else 
@@ -482,6 +515,7 @@
 
 			(if (||
 				(= (get node value) "func")
+				(= (get node value) "struct")
 				(= (get node value) "do")
 				(= (get node value) "then")
 				(= (get node value) "else")) (then
@@ -519,19 +553,16 @@
 	))
 
 	(if (<> (get node type) @NODE_EXPR) (then
-		(let value str (get node value))
-		(if (= (get node type) @NODE_PREPROCESS) (then
-			(set value "")
-			(for i 1 (< i (# (get node value))) 1 (do
-				(<< value (get (get node value) i))
-			))
-		))
-		; (if (= (get node type) @NODE_STR_QUOTE) (then
-		; 	(set value "(char*)")
-		; 	(<< value (get node value))
-		; 	(<< value "")
+		(<< s (call node_to_cpp_preprocess node))
+
+		; (let value str (get node value))
+		; (if (= (get node type) @NODE_PREPROCESS) (then
+		; 	(set value "")
+		; 	(for i 1 (< i (# (get node value))) 1 (do
+		; 		(<< value (get (get node value) i))
+		; 	))
 		; ))
-		(<< s value)
+		; (<< s value)
 	))
 	
 	(return s)

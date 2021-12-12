@@ -1,0 +1,50 @@
+(struct empty)
+
+(func struct_empty_test
+  (print "struct_empty_test:")
+  (let e (struct empty) (alloc (struct empty)))
+)
+
+(struct point 
+    (let pos_x float)
+    (let pos_y float)
+)
+
+(func struct_simple_test
+  (print "struct_simple_test:")
+  (let p (struct point) (alloc (struct point)))
+  (set p pos_x 1.1)
+  (set p pos_y 1.2)
+  (print (get p pos_x))
+  (print (get p pos_y))
+  (free p)
+)
+
+(struct node 
+    (let name str)
+    (let child (struct node))
+)
+
+(func struct_nested_test
+  (print "struct_nested_test:")
+  (let parent (struct node) (alloc (struct node)))
+  (set parent name "parent")
+  
+  (let child (struct node) (alloc (struct node)))
+  (set child name "child")
+
+  (set parent child child)
+
+  (print (get parent name))
+  (print (get parent child name))
+
+  (free child)
+  (free parent)
+)
+
+(func main (result int)
+  (call struct_empty_test)
+  (call struct_simple_test)
+  (call struct_nested_test)
+  (return 0)
+)
