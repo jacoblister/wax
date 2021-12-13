@@ -3,6 +3,7 @@
 ;; Minor modifications for self hosted compiler 
 ;;  - explicit init of 'machine' fields
 ;;  - default read tape result to 0 if not present
+;;  - pass map as parameter (by reference) to step function
 
 ; enums for shift directions
 (@define STAY  0)
@@ -34,7 +35,8 @@
 (func step
 	(param M (struct machine))
 	(param D (arr (struct transition)))
-	(let tape (map int int) (get M tape))
+	(param tape (map int int))
+	; (let tape  (get M tape))
 
 	; check each transition function, to see if conditions apply
 	(for i 0 (< i (# D)) 1 (do
@@ -94,7 +96,7 @@
 	
 	; simulate
 	(while 1 (do
-		(call step M D)
+		(call step M D (get M tape))
 		(call draw M)
 		(if (= (get M state) q1) (then
 			(break)

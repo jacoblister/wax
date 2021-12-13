@@ -16,7 +16,7 @@
   (print (get items 2))
 )
 
-; not supported
+; 2d vector not supported
 ; (func vec_2d_test  
 ;   (print "vec_2d_test:")
 ;   (let items (vec 2 (vec 2 float)) (alloc (vec 2 (alloc (vec 2 float)))))

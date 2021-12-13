@@ -12,7 +12,7 @@
     (let node (struct node) (call node_from_tokens tokens))
     
     ; Then
-    (call test_assert_equal test @NODE_ROOT (get node type) "root node is correct type")
+    (call test_assert_equal test (cast @NODE_ROOT str) (cast (get node type) str) "root node is correct type")
     ; bug: will fail - empty list sets value to closing ')'
     ; (call test_assert_equal test 0 (# (get node child)) "root node has 0 children")
 )
@@ -30,11 +30,11 @@
     (let node (struct node) (call node_from_tokens tokens))
     
     ; Then
-    (call test_assert_equal test @NODE_ROOT (get node type) "root node is correct type")
-    (call test_assert_equal test 1 (# (get node child)) "root node has 1 child")
-    (call test_assert_equal test @NODE_EXPR (get node child 0 type) "root node child has correct type")
+    (call test_assert_equal test (cast @NODE_ROOT str) (cast (get node type) str) "root node is correct type")
+    (call test_assert_equal test (cast 1 str) (cast (# (get node child)) str) "root node has 1 child")
+    (call test_assert_equal test (cast @NODE_EXPR str) (cast (get node child 0 type) str) "root node child has correct type")
     (call test_assert_equal test "func" (get node child 0 value) "root node child has correct value")
-    (call test_assert_equal test @NODE_STR (get node child 0 child 0 type) "func child has correct type")
+    (call test_assert_equal test (cast @NODE_STR str) (cast (get node child 0 child 0 type) str) "func child has correct type")
     (call test_assert_equal test "main" (get node child 0 child 0 value) "func child has correct value")
 )
 

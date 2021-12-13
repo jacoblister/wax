@@ -31,6 +31,22 @@
   (return -1)
 )
 
+(func func_str_result (result str)
+  (print "func_str_result:")
+  (return "string")
+)
+
+(struct point 
+    (let pos_x float)
+    (let pos_y float)
+)
+
+(func func_struct (param p (struct point))
+  (print "func_struct:")
+  (print (get p pos_x))
+  (print (get p pos_y))
+)
+
 (func main
     ; (call func_no_body)
     (call func_empty)
@@ -38,4 +54,10 @@
     (call func_param_a 1)
     (call func_param_abc 1 2 3)
     (print (call func_param_abc_result 1 2 3))
+    (print (call func_str_result))
+
+    (let p (struct point) (alloc (struct point)))
+    (set p pos_x 1.1)
+    (set p pos_y 2.2)
+    (call func_struct p)
  )

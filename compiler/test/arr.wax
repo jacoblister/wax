@@ -13,6 +13,15 @@
   (print (get items 2))
 )
 
+(func arr_str_test 
+  (print "arr_str_test:")
+  (let items (arr str) (alloc (arr str) "aa" "bb" "cc"))
+  (print (# items))
+  (print (get items 0))
+  (print (get items 1))
+  (print (get items 2))
+)
+
 (func arr_2d_test 
   (print "arr_2d_test:")
   (let items (arr (arr float)) (alloc (arr (arr float))))
@@ -25,9 +34,31 @@
   (print (get items 1 1))
 )
 
+(struct point 
+    (let pos_x float)
+    (let pos_y float)
+)
+
+(func arr_struct_test 
+  (print "arr_struct_test:")
+  (let items (arr (struct point)) (alloc (arr (struct point))))
+  (insert items 0 (alloc (struct point)))
+  (insert items 1 (alloc (struct point)))
+  (set (get items 0) pos_x 0.11)
+  (set (get items 0) pos_y 0.12)
+  (set (get items 1) pos_x 0.21)
+  (set (get items 1) pos_y 0.22)
+  (print (get items 0 pos_x))
+  (print (get items 0 pos_y))
+  (print (get items 1 pos_x))
+  (print (get items 1 pos_y))
+)
+
 (func main (result int)
   (call arr_empty_test)
   (call arr_simple_test)
+  (call arr_str_test)
   (call arr_2d_test)
+  (call arr_struct_test)
   (return 0)
 )

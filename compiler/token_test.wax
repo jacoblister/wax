@@ -10,21 +10,21 @@
     (let tokens (arr str) (call token_parse source))
 
     ; Then
-    (call test_assert_equal test 0 (# tokens) "correct number of tokens")
+    (call test_assert_equal test (cast 0 str) (cast (# tokens) str) "correct number of tokens")
 )
 
 (func token_parse_test_single_word
     ; Given
     (let test (struct test_test) (call test_init "token_parse_test_simple"))
-    (let source str	"main")
+    (let source str	"main\n")
 
     ; When
     (let tokens (arr str) (call token_parse source))
 
     ; Then
     ; Bug - will fail without terminating newline
-    ; (call test_assert_equal test 1 (# tokens) "correct number of tokens")
-    ; (call test_assert_equal test "main" (get tokens 0) "correct token 0")
+    (call test_assert_equal test (cast 1 str) (cast (# tokens) str) "correct number of tokens")
+    (call test_assert_equal test "main" (get tokens 0) "correct token 0")
 )
 
 (func token_parse_test_simple
@@ -36,7 +36,7 @@
     (let tokens (arr str) (call token_parse source))
 
     ; Then
-    (call test_assert_equal test 4 (# tokens) "correct number of tokens")
+    (call test_assert_equal test (cast 4 str) (cast (# tokens) str) "correct number of tokens")
     (call test_assert_equal test "(" (get tokens 0) "correct token 0")
     (call test_assert_equal test "func" (get tokens 1) "correct token 1")
     (call test_assert_equal test "main" (get tokens 2) "correct token 2")
@@ -52,7 +52,7 @@
     (let tokens (arr str) (call token_parse source))
 
     ; Then
-    (call test_assert_equal test 1 (# tokens) "correct number of tokens")
+    (call test_assert_equal test (cast 1 str) (cast (# tokens) str) "correct number of tokens")
     (call test_assert_equal test "token" (get tokens 0) "correct token 0")
 )
 
@@ -65,7 +65,7 @@
     (let tokens (arr str) (call token_parse source))
 
     ; Then
-    (call test_assert_equal test 1 (# tokens) "correct number of tokens")
+    (call test_assert_equal test (cast 1 str) (cast (# tokens) str) "correct number of tokens")
     (call test_assert_equal test "\"\\\"a = 1\\\" next\"" (get tokens 0) "correct token 0")
 )
 
@@ -78,16 +78,16 @@
     (let tokens (arr str) (call token_parse source))
 
     ; Then
-    (call test_assert_equal test 16 (# tokens) "correct number of tokens")
+    (call test_assert_equal test (cast 16 str) (cast (# tokens) str) "correct number of tokens")
 )
 
 (func main (result int)
-;   (call token_parse_test_empty)
-;   (call token_parse_test_single_word)
-;   (call token_parse_test_simple)
-;   (call token_parse_test_comment)
+  (call token_parse_test_empty)
+  (call token_parse_test_single_word)
+  (call token_parse_test_simple)
+  (call token_parse_test_comment)
   (call token_parse_test_quoted_space)
-;   (call token_parse_test_helloworld)
+  (call token_parse_test_helloworld)
   
   (return 0)
 )
