@@ -1,18 +1,52 @@
 (@include "token.wax")
 (@include "node.wax")
-; (@include "node_preprocess.wax")
+(@include "node_preprocess.wax")
 (@include "target_wax.wax")
 (@include "target_js.wax")
 (@include "target_cpp.wax")
 
-(func compile (param filename str) (param target str) (result str)
-	(let prog str "(func main)")
-    ; (let prog str (call readfile "../examples/helloworld.wax"))
+(extern readfile (param filename str) (result str))
+(@if TARGET_TS 1
+	(asm "declare var require: any;")
+	(asm "function readfile(filename) {")
+	(asm "  let fs=require('fs');")
+	(asm "  return fs.readFileSync('/workspaces/wax/compiler/' + filename).toString();")
+	(asm "}")
+)
+
+(func compile (param target str) (param filename str) (result str)
+    (let prog str (call readfile filename))
 
 	(let tokens (arr str) (call token_parse prog))
 	(let root (struct node) (call node_from_tokens tokens))
-	; (set root (call node_preprocess root))
+	(set root (call node_preprocess root))
 
-   	(let out str (call node_to_js 0 root))
+	(let out str "unknown target")
+    (if (= target "--target=js") (then
+		(set out (call node_to_js 0 root))
+	))
+    (if (= target "--target=cpp") (then
+		(set out (call node_to_cpp 0 root))
+	))
+
 	(return out)
 )
+
+(func help (result str)
+	(let help str (alloc str "usage: wax <--target=js|--target=cpp> <filename.wax>"))
+	(return help)
+)
+
+(func main (param args (arr str)) (result int)
+	; (insert args 1 "--target=cpp")
+	; (insert args 2 "test/print.wax")
+
+	(if (= 3 (# args)) (then
+		(print (call compile (get args 1) (get args 2)))
+	) (else 
+		(print (call help))
+	))
+
+	(return 0)
+)
+
