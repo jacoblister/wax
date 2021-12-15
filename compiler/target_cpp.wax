@@ -61,6 +61,9 @@
 		(for i 0 (< i (# (get node child))) 1 (do
 			(let child str (call node_to_cpp 0 (get node child i)))
 			(<< s child)
+			(if (= (get node child i value) "let") (then
+				(<< s ";")
+			))
 			(<< s "\n")
 		))
 	))
@@ -500,22 +503,6 @@
 					(<< s ";")
 				)
 			)
-			; (if (&& (||
-			; 		(= (get node value) "func")
-			; 		(= (get node value) "do")
-			; 		(= (get node value) "then")
-			; 		(= (get node value) "else"))
-			; 		(|| 
-			; 		(= (get node_child value) "let")
-			; 		(= (get node_child value) "get")
-			; 		(= (get node_child value) "set")
-			; 		(= (get node_child value) "call")
-			; 		)
-			; 	) (then
-			; 		(<< s ";")
-			; 	)
-			; )
-
 			(if (&& 
 				indent_needed
 				(= i (- (# (get node child)) 1)) ; is last child
@@ -531,7 +518,12 @@
 	))
 
 	(if (<> (get node type) @NODE_EXPR) (then
-		(<< s (call node_to_cpp_preprocess node))
+		; (<< s (call node_to_cpp_preprocess node))
+		(let value str (call node_to_cpp_preprocess node))
+		(if (= (get node type) @NODE_CHAR) (then
+			(<< s "(int)")
+		))
+		(<< s value)
 	))
 	
 	(return s)

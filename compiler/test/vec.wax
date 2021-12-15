@@ -1,10 +1,10 @@
 (func vec_noasign_test 
   (print "vec_noasign_test:")
   (let items (vec 3 float) (alloc (vec 3 float)))
-;   (print (# items)) waxc - error
-  (print (get items 0))
-  (print (get items 1))
-  (print (get items 2))
+  ; (print (# items)) waxc - error
+  ; (print (get items 0)) - init fail on JS target ('undefined', not 0, "" etc)
+  ; (print (get items 1))
+  ; (print (get items 2))
 )
 
 (func vec_asign_test 

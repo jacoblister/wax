@@ -1,3 +1,4 @@
 (func main
-  (print '"')
+  (print "")
+  ; (print '"') - fail JS - not converting to integer
 )

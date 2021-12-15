@@ -1,0 +1,7 @@
+struct_empty_test:
+struct_simple_test:
+1.1
+1.2
+struct_nested_test:
+parent
+child

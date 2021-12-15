@@ -2,6 +2,8 @@
     (let name str)
 )
 
+(let test_result_value int 0)
+
 (func test_init (param name str) (result (struct test_test))
     (let test (struct test_test) (alloc (struct test_test)))
     (set test name name)
@@ -21,5 +23,11 @@
         (print "actual:")
         (print actual)
         (print "")
+
+        (set test_result_value -1)
     ))
+)
+
+(func test_result (result int)
+    (return test_result_value)
 )

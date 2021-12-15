@@ -1,22 +1,7 @@
+; manually substitute these include files for single file target with examples 
 (@include "token.wax")
 (@include "node.wax")
-(@include "target_wax.wax")
 (@include "target_js.wax")
-
-; (func prog_helloworld (result str)
-; 	(let lines (arr str) (alloc (arr str)))
-; 	(insert lines 0 "(func main (result int)\n")
-; 	(insert lines 1	"  (print 123)\n")
-; 	(insert lines 2 "  (return 0)\n")
-; 	(insert lines 3 ")\n")
-
-; 	(let prog str (alloc str ""))
-; 	(for i 0 (< i (# lines)) 1 (do
-; 		(<< prog (get lines i))
-; 	))
-
-; 	(return prog)
-; )
 
 (func prog_helloworld (result str)
 	(let lines (arr str) (alloc (arr str)
@@ -243,11 +228,9 @@
 	(let prog str (call prog_compiler))
 
 	(let tokens (arr str) (call token_parse prog))
-	; (call token_write_to_output tokens)
 
 	(let root (struct node) (call node_from_tokens tokens))
 
-	; (let out str (call node_to_wax 0 root))
    	(let out str (call node_to_js 0 root))
 	(print out)
 
