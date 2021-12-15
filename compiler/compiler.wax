@@ -52,11 +52,7 @@
 	(return help)
 )
 
-; (func main (param args (arr str)) (result int)
 (func main (param args (arr str)) (result int)
-	; (insert args 1 "--target=cpp")
-	; (insert args 2 "test/print.wax")
-
 	(if (= 3 (# args)) (then
 		(print (call compile (get args 1) (get args 2)))
 	) (else 
