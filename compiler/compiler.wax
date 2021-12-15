@@ -3,13 +3,13 @@
 	(asm "declare var require: any;")
 	(asm "function readfile(filename) {")
 	(asm "  let fs=require('fs');")
-	(asm "  return fs.readFileSync('/workspaces/wax/compiler/' + filename).toString();")
+	(asm "  return fs.readFileSync(filename).toString();")
 	(asm "}")
 )
 (@if TARGET_JS 1
 	(asm "function readfile(filename) {")
 	(asm "  let fs=require('fs');")
-	(asm "  return fs.readFileSync('/workspaces/wax/compiler/' + filename).toString();")
+	(asm "  return fs.readFileSync(filename).toString();")
 	(asm "}")
 )
 (@if TARGET_CPP 1

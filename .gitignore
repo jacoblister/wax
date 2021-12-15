@@ -1,7 +1,10 @@
 ./a.out
-**/a.out
-out/
-tests/
+wax
 waxc
-.DS_Store
-**/.DS_Store
+*.c 
+*.cpp 
+*.ts 
+*.js 
+*.bin 
+a.out 
+*.tmp
