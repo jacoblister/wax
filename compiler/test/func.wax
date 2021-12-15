@@ -47,7 +47,7 @@
   (print (get p pos_y))
 )
 
-(func main
+(func main (result int)
     ; (call func_no_body)
     (call func_empty)
     (print (call func_result))
@@ -60,4 +60,5 @@
     (set p pos_x 1.1)
     (set p pos_y 2.2)
     (call func_struct p)
+    (return 0)
  )

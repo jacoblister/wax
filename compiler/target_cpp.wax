@@ -66,6 +66,11 @@
 			))
 			(<< s "\n")
 		))
+
+		(<< s "int main(int argc, char** argv) {\n")
+		(<< s "  std::vector<std::string> args(argv, argv + argc);\n")
+		(<< s "  return main_args(args);\n")
+		(<< s "};\n")
 	))
 
 	(if (|| 
@@ -89,6 +94,38 @@
 			(<< block_start (get node child 1 value))
 
 			(set block_end "")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
+		(if (= (get node value) "@if") (then
+			(set block_start "")
+			(set block_end "")
+			(if (= (get node child 0 value) "TARGET_CPP") (then
+				(remove (get node child) 0 1)
+				(remove (get node child) 0 1)
+			) (else
+				(while (> (# (get node child)) 0) (do
+					(remove (get node child) 0 1)
+				))
+			))
+		))
+		(if (= (get node value) "extern") (then
+			(set block_start "")
+			(set block_end "")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
+		(if (= (get node value) "asm") (then
+			(let quotedline str (get node child 0 value))
+			(let line str "")
+            (for j 1 (< j (- (# quotedline) 1)) 1 (do 
+                (<< line (get quotedline j))
+            ))
+
+			(set block_start line)
+			(set block_end "\n")
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))
@@ -138,6 +175,8 @@
 
 			(let func_name str (get node child 0 value))
 			(if (= func_name "main") (then
+				(set func_name "main_args")
+				(set params "std::vector<std::string>& args")
 				(set return_type "int")
 			))
 			(<< block_start return_type)

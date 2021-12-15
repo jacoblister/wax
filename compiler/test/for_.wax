@@ -5,6 +5,7 @@
   ))
 )
 
-(func main
+(func main (result int)
     (call for_test)
+    (return 0)
  )

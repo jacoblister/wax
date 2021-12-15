@@ -1,10 +1,3 @@
-(@include "token.wax")
-(@include "node.wax")
-(@include "node_preprocess.wax")
-(@include "target_wax.wax")
-(@include "target_js.wax")
-(@include "target_cpp.wax")
-
 (extern readfile (param filename str) (result str))
 (@if TARGET_TS 1
 	(asm "declare var require: any;")
@@ -13,6 +6,28 @@
 	(asm "  return fs.readFileSync('/workspaces/wax/compiler/' + filename).toString();")
 	(asm "}")
 )
+(@if TARGET_JS 1
+	(asm "function readfile(filename) {")
+	(asm "  let fs=require('fs');")
+	(asm "  return fs.readFileSync('/workspaces/wax/compiler/' + filename).toString();")
+	(asm "}")
+)
+(@if TARGET_CPP 1
+	(asm "#include <fstream>")
+	(asm "#include <streambuf>")
+	(asm "std::string readfile(std::string filename) {")
+	(asm "  std::ifstream t(filename);")
+	(asm "  std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());")
+	(asm "  return str;")
+	(asm "}")
+)
+
+(@include "token.wax")
+(@include "node.wax")
+(@include "node_preprocess.wax")
+(@include "target_wax.wax")
+(@include "target_js.wax")
+(@include "target_cpp.wax")
 
 (func compile (param target str) (param filename str) (result str)
     (let prog str (call readfile filename))
@@ -37,6 +52,7 @@
 	(return help)
 )
 
+; (func main (param args (arr str)) (result int)
 (func main (param args (arr str)) (result int)
 	; (insert args 1 "--target=cpp")
 	; (insert args 2 "test/print.wax")

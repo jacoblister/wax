@@ -1,4 +1,5 @@
-(func main
+(func main (result int)
   (print "")
   ; (print '"') - fail JS - not converting to integer
+  (return 0)
 )

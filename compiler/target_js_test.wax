@@ -11,7 +11,7 @@
     (let js str (call node_to_js 0 node_root))
     
     ; Then
-    (call test_assert_equal test "main()\n" js "js source code")
+    (call test_assert_equal test "(typeof process == 'undefined') ? main([]) : process.exit(main(process.argv.slice(1)));\n" js "js source code")
 )
 
 (func note_to_js_test_simple
@@ -27,7 +27,7 @@
     (let js str (call node_to_js 0 node_root))
     
     ; Then
-    (call test_assert_equal test "function main() {}\nmain()\n" js "js source code")
+    (call test_assert_equal test "function main() {}\n(typeof process == 'undefined') ? main([]) : process.exit(main(process.argv.slice(1)));\n" js "js source code")
 )
 
 (func main (result int)

@@ -12,7 +12,7 @@
 			(<< s "\n")
 		))
 		
-		(<< s "main()\n")
+		(<< s "(typeof process == 'undefined') ? main([]) : process.exit(main(process.argv.slice(1)));\n")
 	))
 
 	(if (|| 
@@ -37,6 +37,38 @@
 			(<< block_start ";")
 
 			(set block_end "")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
+		(if (= (get node value) "@if") (then
+			(set block_start "")
+			(set block_end "")
+			(if (= (get node child 0 value) "TARGET_JS") (then
+				(remove (get node child) 0 1)
+				(remove (get node child) 0 1)
+			) (else
+				(while (> (# (get node child)) 0) (do
+					(remove (get node child) 0 1)
+				))
+			))
+		))
+		(if (= (get node value) "extern") (then
+			(set block_start "")
+			(set block_end "")
+			(while (> (# (get node child)) 0) (do
+				(remove (get node child) 0 1)
+			))
+		))
+		(if (= (get node value) "asm") (then
+			(let quotedline str (get node child 0 value))
+			(let line str "")
+            (for j 1 (< j (- (# quotedline) 1)) 1 (do 
+                (<< line (get quotedline j))
+            ))
+
+			(set block_start line)
+			(set block_end "\n")
 			(while (> (# (get node child)) 0) (do
 				(remove (get node child) 0 1)
 			))
