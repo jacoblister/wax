@@ -15,8 +15,10 @@ compiler.js:
 wax.js: compiler.js
 	node compiler.js --target=js compiler.wax > wax.js
 
-wax: compiler.js
+wax.cpp: compiler.js
 	node compiler.js --target=cpp compiler.wax > wax.cpp
+
+wax: compiler.js
 	g++ wax.cpp -o wax
 
 # Wax Language tests for tests
